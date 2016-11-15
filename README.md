@@ -30,8 +30,8 @@ gem 'release_notes', :github => 'culturecode/release_notes'
 2. Create an [OAuth token](https://developer.github.com/v3/oauth/) to access your repo through the Github API. You can [create access tokens in GitHub Account Settings](https://help.github.com/articles/creating-an-access-token-for-command-line-use/).
 
 ### Usage
-After a new tag is created, pass the ReleaseNotes Manager server name and the new tag name:
+After a new tag is created, pass the ReleaseNotes Manager the server name of the deployment and the new tag name:
 ```ruby
-ReleaseNotes::Manager.new('your_repo', 'access_token').publish_release('server_name', 'new_tag_name')
+ReleaseNotes::Manager.new('your repo', 'access token').publish_release('server name', 'new tag name')
 ```
 Then on Github go to your releases to view your changelog.
