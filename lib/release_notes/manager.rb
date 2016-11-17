@@ -34,6 +34,7 @@ module ReleaseNotes
 
     # update release notes with changelog
     def update_release_notes(server_name, old_tag_name, new_tag, verification_text, text)
+      return puts "Release Notes are already updated for Server #{server_name}" if old_tag_name == new_tag.tag
       release = find_current_release(new_tag.tag)
       title = "## Deployed to: #{server_name} (#{Time.zone.now.ctime})"
       subtitle = "### Changes Since: Tag #{old_tag_name}"
