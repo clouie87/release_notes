@@ -37,4 +37,4 @@ ReleaseNotes::Manager.new('your repo', 'access token').publish_release('server n
 Then on Github go to your releases to view your changelog.
 
 ### Possible Caveats
-If none of the releases has been deployed to the specified server, it compares the tag against the previous release. Release Notes assumes that the newly created tag has not been published yet. If the new tag has been published as a release, then the changelog will not be updated. Solution: Delete the Release and re-run the command above.
+If none of the releases have been deployed to the specified server, it compares the tag against the previous release. Release Notes assumes that the newly created tag has not been published yet. If the new tag has been published as a release, then the changelog will not be updated. Solution: Delete the Release and re-run the command above.
