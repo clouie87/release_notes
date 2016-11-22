@@ -51,6 +51,7 @@ module ReleaseNotes
       @api.find_release(tag_name)
     rescue Octokit::NotFound
       @api.create_release(tag_name)
+      @api.find_release(tag_name)
     end
 
     def release_verification_text(server_name, old_tag_sha, new_tag)

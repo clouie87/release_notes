@@ -18,9 +18,7 @@ module ReleaseNotes
     end
 
     def create_release(tag_name)
-      release = @client.create_release(@repo, tag_name)
-      release[:metadata] = {}
-      release
+      @client.create_release(@repo, tag_name)
     end
 
     def find_tag_by_name(tag_name)
