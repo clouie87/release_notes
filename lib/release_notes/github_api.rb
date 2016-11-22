@@ -4,6 +4,8 @@ module ReleaseNotes
   class GithubAPI
     include Octokit
 
+    METADATA_DELIMITER = "\n\nRelease Metadata: (do not edit)".freeze
+
     def initialize(repo, token)
       @repo = repo
       @client = Octokit::Client.new(access_token: token)
@@ -16,7 +18,9 @@ module ReleaseNotes
     end
 
     def create_release(tag_name)
-      @client.create_release(@repo, tag_name)
+      release = @client.create_release(@repo, tag_name)
+      release[:metadata] = {}
+      release
     end
 
     def find_tag_by_name(tag_name)
@@ -45,15 +49,31 @@ module ReleaseNotes
     end
 
     def releases
-      @client.releases(@repo)
+      populate_releases_metadata(@client.releases(@repo))
     end
 
     def find_release(tag_name)
-      @client.release_for_tag(@repo, tag_name)
+      populate_release_metadata(@client.release_for_tag(@repo, tag_name))
     end
 
-    def update_release(release, text)
-      @client.update_release(release.url, body: text)
+    def update_release(release, text, verification)
+      body = [release.body.to_s, text].join("\n\n")
+      @client.update_release(release.url, body: [body + METADATA_DELIMITER + release.metadata.merge(verification).to_json].join("\n\n"))
+    end
+
+    private
+
+    def populate_releases_metadata(releases)
+      releases.map do |release|
+        populate_release_metadata(release)
+      end
+    end
+
+    def populate_release_metadata(release)
+      metadata = release.body.to_s.split(METADATA_DELIMITER)
+      release[:body] = metadata[0]
+      release[:metadata] = metadata[1].present? ? JSON.parse(metadata[1]) : {}
+      release
     end
   end
 end
