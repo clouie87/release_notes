@@ -261,10 +261,6 @@ def create_new_tag(tag_name, commit_sha: nil)
   @api.find_tag_by_name(new_tag.tag)
 end
 
-def create_new_release(tag_name, body: '', hash: nil)
-  @test_client.create_release(@repo, tag_name, body: body + hash.to_s)
-end
-
 # FIND
 def find_tag_name(last_tag_name)
   last_tag_name.to_i + 1
