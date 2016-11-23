@@ -12,15 +12,17 @@ module ReleaseNotes
 
     def publish_release(server_name, tag_name)
       new_tag = @api.find_tag_by_name(tag_name)
+      release_to_compare = find_latest_release(server_name: server_name)
 
-      if releases.present?
-        old_tag = find_latest_published_tag(new_tag.tag, server_name: server_name)
-        old_tag_sha = old_tag.sha
+      if release_to_compare.present?
+        old_tag = find_latest_published_tag(release_to_compare)
         pr_texts = texts_from_merged_pr(new_tag, old_tag)
-        changelog_text = [release_notes_headers(server_name, old_tag), assemble_changelog(pr_texts)].join("\n\n")
+        changelog_text = assemble_changelog(pr_texts)
       end
 
-      update_release_notes(server_name, new_tag, old_tag_sha: old_tag_sha, text: changelog_text)
+      old_tag ||= OpenStruct.new(sha: nil, tag: "First Deploy")
+
+      update_release_notes(server_name, new_tag, old_tag, text: changelog_text)
     end
 
     def texts_from_merged_pr(new_tag, old_tag)
@@ -34,7 +36,7 @@ module ReleaseNotes
     end
 
     # update release notes with changelog
-    def update_release_notes(server_name, new_tag, old_tag_sha: nil, text: nil)
+    def update_release_notes(server_name, new_tag, old_tag, text: nil)
       release = find_current_release(new_tag.tag)
 
       if release.metadata[server_name]
@@ -42,9 +44,9 @@ module ReleaseNotes
         return release
       end
 
-      verification_text = release_verification_text(server_name, old_tag_sha, new_tag)
+      verification_text = release_verification_text(server_name, old_tag, new_tag)
 
-      @api.update_release(release, text, verification_text)
+      @api.update_release(release, [release_notes_headers(server_name, old_tag), text].join("\n\n"), verification_text)
     end
 
     def find_current_release(tag_name)
@@ -54,8 +56,8 @@ module ReleaseNotes
       @api.find_release(tag_name)
     end
 
-    def release_verification_text(server_name, old_tag_sha, new_tag)
-      {"#{server_name}": {old_tag: old_tag_sha, new_tag_sha: new_tag.sha, commit_sha: new_tag.object.sha}}
+    def release_verification_text(server_name, old_tag, new_tag)
+      {"#{server_name}": {old_tag: old_tag.sha, new_tag_sha: new_tag.sha, commit_sha: new_tag.object.sha}}
     end
 
     private
@@ -67,15 +69,13 @@ module ReleaseNotes
       end
     end
 
-    def find_latest_published_tag(new_tag_name, server_name: nil)
-      old_release = find_latest_release(server_name: server_name)
-      @api.find_tag_by_name(old_release.tag_name)
-    end
-
     # find which release this server was last deployed to
     def find_latest_release(server_name: nil)
-      release = releases.find { |r| r.metadata.keys.include?(server_name.to_s) } if server_name
-      release || releases.first
+      return releases.find { |r| r.metadata.keys.include?(server_name.to_s) } if server_name
+    end
+
+    def find_latest_published_tag(old_release)
+      @api.find_tag_by_name(old_release.tag_name)
     end
 
     def releases
@@ -83,7 +83,8 @@ module ReleaseNotes
     end
 
     def release_notes_headers(server_name, old_tag)
-      ["## Deployed to: #{server_name} (#{Time.zone.now.ctime})", "### Changes Since: Tag #{old_tag.tag}"]
+      changes = "Changes Since: Tag " if old_tag.sha
+      ["## Deployed to: #{server_name} (#{Time.now.utc.asctime})", "### " + changes.to_s + old_tag.tag]
     end
 
     def changelog_text(texts)
