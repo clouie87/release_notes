@@ -12,14 +12,17 @@ module ReleaseNotes
 
     def publish_release(server_name, tag_name)
       new_tag = @api.find_tag_by_name(tag_name)
-      old_tag = find_latest_published_tag(server_name: server_name)
-      pr_texts = texts_from_merged_pr(new_tag, old_tag)
+      release_to_compare = find_latest_release(server_name: server_name)
 
-      changelog_text = assemble_changelog(pr_texts)
-      verification_text = release_verification_text(server_name, old_tag, new_tag)
-      release = update_release_notes(server_name, old_tag.tag, new_tag, verification_text.to_s, changelog_text)
-      release[:verification] = verification_text
-      release
+      if release_to_compare.present?
+        old_tag = find_latest_published_tag(release_to_compare)
+        pr_texts = texts_from_merged_pr(new_tag, old_tag)
+        changelog_text = assemble_changelog(pr_texts)
+      end
+
+      old_tag ||= OpenStruct.new(sha: nil, tag: "First Deploy")
+
+      update_release_notes(server_name, new_tag, old_tag, text: changelog_text)
     end
 
     def texts_from_merged_pr(new_tag, old_tag)
@@ -33,21 +36,28 @@ module ReleaseNotes
     end
 
     # update release notes with changelog
-    def update_release_notes(server_name, old_tag_name, new_tag, verification_text, text)
-      return puts "Release Notes are already updated for Server #{server_name}" if old_tag_name == new_tag.tag
+    def update_release_notes(server_name, new_tag, old_tag, text: nil)
       release = find_current_release(new_tag.tag)
-      title = "## Deployed to: #{server_name} (#{Time.zone.now.ctime})"
-      subtitle = "### Changes Since: Tag #{old_tag_name}"
-      verification_title = "Verification Data: (do not edit)"
 
-      release_text = [title, subtitle, text, verification_title, verification_text]
-      @api.update_release(release, release.body.to_s + release_text.join("\n\n"))
+      if release.metadata[server_name]
+        puts "Release Notes are already updated for Server #{server_name}"
+        return release
+      end
+
+      verification_text = release_verification_text(server_name, old_tag, new_tag)
+
+      @api.update_release(release, [release_notes_headers(server_name, old_tag), text].join("\n\n"), verification_text)
     end
 
     def find_current_release(tag_name)
       @api.find_release(tag_name)
     rescue Octokit::NotFound
       @api.create_release(tag_name)
+      @api.find_release(tag_name)
+    end
+
+    def release_verification_text(server_name, old_tag, new_tag)
+      {"#{server_name}": {old_tag: old_tag.sha, new_tag_sha: new_tag.sha, commit_sha: new_tag.object.sha}}
     end
 
     private
@@ -59,21 +69,22 @@ module ReleaseNotes
       end
     end
 
-    def find_latest_published_tag(server_name: nil)
-      old_release = find_latest_release(server_name: server_name)
+    # find which release this server was last deployed to
+    def find_latest_release(server_name: nil)
+      return releases.find { |r| r.metadata.keys.include?(server_name.to_s) } if server_name
+    end
+
+    def find_latest_published_tag(old_release)
       @api.find_tag_by_name(old_release.tag_name)
     end
 
-    # find which release this server was last deployed to
-    def find_latest_release(server_name: nil)
-      releases = @api.releases
-      release = releases.find { |r| r if r.body.to_s.include?("\"server\"=>\"#{server_name}\"") } if server_name
-      release || releases.first
+    def releases
+      @api.releases
     end
 
-    # verfication so we can identify on next deploy (look for server: server_name)
-    def release_verification_text(server_name, old_tag, new_tag)
-      { server: server_name, old_tag: old_tag.sha, new_tag_sha: new_tag.sha, commit_sha: new_tag.object.sha }.as_json
+    def release_notes_headers(server_name, old_tag)
+      changes = "Changes Since: Tag " if old_tag.sha
+      ["## Deployed to: #{server_name} (#{Time.now.utc.asctime})", "### " + changes.to_s + old_tag.tag]
     end
 
     def changelog_text(texts)

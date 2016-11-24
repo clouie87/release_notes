@@ -4,50 +4,69 @@ require 'release_notes'
 describe ReleaseNotes::Manager do
   include Octokit
   mattr_accessor :uniq_number
+  DEFAULT_SERVER = "Production"
 
   before(:all) do
     @access_token = ENV['GITHUB_API_TOKEN']
     @test_client = Octokit::Client.new(access_token: @access_token)
     @test_client.login
     @repo = @test_client.create_repo('test_release_notes', description: "testing gitHubAPI", auto_init: true).full_name
-    @githubAPI = ReleaseNotes::GithubAPI.new(@repo, ENV['GITHUB_API_TOKEN'])
+    @api = ReleaseNotes::GithubAPI.new(@repo, ENV['GITHUB_API_TOKEN'])
   end
 
   describe 'Test Repo' do
     before(:all) do
       @tag_one = create_new_tag("1", commit_sha: tagging_commit)
-      create_new_release(@tag_one.tag, body: "Verification Data: (do not edit) \"server\"=>\"Production\"")
-      @tag_two = create_new_tag(find_tag_name(@tag_one.tag).to_s)
-      create_new_release(@tag_two.tag)
+      ReleaseNotes::Manager.new(@repo, @access_token).publish_release(DEFAULT_SERVER, @tag_one.tag)
+    end
+
+    before(:each) do
+      sleep 1 # Github Best Practices https://developer.github.com/guides/best-practices-for-integrators/#dealing-with-rate-limits
     end
 
     describe '#publish_release' do
       let(:branch) { create_branch }
       let(:pr) { setup_issue_commit_pr('master', branch) }
-      let(:old_tag) { @githubAPI.find_tag_by_name(find_latest_release) }
-      let(:new_tag_name) { create_new_tag(find_tag_name(find_latest_release).to_s).tag }
 
-      before(:each) { branch; pr; old_tag; new_tag_name; Time.stub(:zone).and_return(Time) }
+      before(:each) { branch; pr }
 
       subject { ReleaseNotes::Manager.new(@repo, @access_token) }
 
-      it 'finds the tag that was last linked to a server_name' do
-        expect(subject.publish_release("Production", new_tag_name).verification["old_tag"]).to include(@tag_one.sha)
+      context 'when deploying the first release' do
+        it 'adds the metadata' do
+          hash = subject.release_verification_text(DEFAULT_SERVER, OpenStruct.new(sha: nil, tag: "First Deploy"), @tag_one)
+          expect(subject.find_current_release(@tag_one.tag).metadata).to include(JSON.parse(hash.to_json))
+        end
+
+        it 'adds that this is the first deploy to this server to the body' do
+          expect(subject.find_current_release(@tag_one.tag).body).to include(DEFAULT_SERVER, "First Deploy")
+        end
       end
 
-      it 'finds the most recent published tag if no tags are linked to a specified server' do
-        expect(subject.publish_release("non_existant_server", new_tag_name).verification["old_tag"]).to include(old_tag.sha)
+      context 'when deploying to one server' do
+        let(:new_tag_name) { create_new_tag(find_tag_name(latest_tag.name).to_s).tag }
+
+        before(:each) { new_tag_name }
+
+        it 'finds the tag that was last linked to a server_name' do
+          expect(subject.publish_release(DEFAULT_SERVER, new_tag_name).body).to include(@tag_one.sha)
+        end
+
+        it 'does not update metadata if already deployed tag to server' do
+          expect(subject.publish_release(DEFAULT_SERVER, @tag_one.tag).body).to match("\n\n")
+        end
       end
 
-      context 'when the same tag is published with two different servers' do
+      context 'when deploying to multiple servers' do
+        let(:new_tag_name) { create_new_tag(find_tag_name(latest_tag.name).to_s).tag }
+        let(:release) { subject.publish_release(DEFAULT_SERVER, new_tag_name) }
 
-        before(:each) { subject.publish_release("Other_Server", new_tag_name) }
+        before(:each) { new_tag_name; release; }
 
-        subject { ReleaseNotes::Manager.new(@repo, @access_token) }
-
-        it 'updates the release notes with changes between both servers' do
-          server_name = 'Server_Production'
-          expect(subject.publish_release(server_name, new_tag_name).body).to include("#{server_name}", "Other_Server")
+        it 'updates the metadata with both servers if two servers have been deployed to the same tag' do
+          server_name = 'NewServer'
+          subject.publish_release(server_name, new_tag_name)
+          expect(subject.find_current_release(new_tag_name).metadata.keys).to include(DEFAULT_SERVER, server_name)
         end
       end
     end
@@ -55,16 +74,19 @@ describe ReleaseNotes::Manager do
     context 'when a new tag is created after a pull request is merged into a branch' do
       let(:branch_name) { create_branch }
       let(:pull_request_one) { setup_issue_commit_pr('master', branch_name) }
-      let(:old_tag) { @githubAPI.find_tag_by_name(find_latest_release) }
-      let(:new_tag) { create_new_tag(find_tag_name(find_latest_release).to_s) }
+      let(:old_tag) { @api.find_tag_by_name(find_latest_release) }
+      let(:new_tag) { create_new_tag(find_tag_name(latest_tag.name).to_s) }
       let(:pull_request_two) { setup_issue_commit_pr('master', branch_name) }
 
-      before(:each) { branch_name; pull_request_one; old_tag; new_tag; pull_request_two }
-      after(:each) { subject.find_current_release(new_tag.tag) }
-
-      subject { ReleaseNotes::Manager.new(@repo, @access_token) }
-
       describe '#texts_from_merged_pr' do
+        before(:each) { branch_name; pull_request_one; old_tag; new_tag; pull_request_two }
+
+        def delete_tag_ref
+          @test_client.delete_ref(@repo, "tags/#{new_tag.tag}")
+        end
+
+        subject { ReleaseNotes::Manager.new(@repo, @access_token) }
+
         it 'finds the pr texts that have been merged' do
           expect(subject.texts_from_merged_pr(new_tag, old_tag)).to include(pull_request_one.body)
         end
@@ -80,11 +102,10 @@ describe ReleaseNotes::Manager do
       let(:branch_two) { create_branch }
       let(:pr_one) { setup_issue_commit_pr(branch_one, branch_two) }
       let(:pr_two) { setup_issue_commit_pr(branch_one, branch_two) }
-      let(:old_tag) { @githubAPI.find_tag_by_name(find_latest_release) }
-      let(:new_tag) { create_new_tag(find_tag_name(find_latest_release).to_s, commit_sha: tagging_commit(branch: branch_one)) }
+      let(:old_tag) { @api.find_tag_by_name(find_latest_release) }
+      let(:new_tag) { create_new_tag(find_tag_name(latest_tag.name).to_s, commit_sha: tagging_commit(branch: branch_one)) }
 
       before(:each) { branch_one; branch_two; pr_one; pr_two; old_tag; new_tag }
-      after(:each) { subject.find_current_release(new_tag.tag) }
 
       subject { ReleaseNotes::Manager.new(@repo, @access_token) }
 
@@ -95,10 +116,9 @@ describe ReleaseNotes::Manager do
 
         context 'when a newer tag is created' do
           let(:pr_three) { setup_issue_commit_pr(branch_one, branch_two) }
-          let(:newer_tag) { create_new_tag(find_tag_name(find_latest_release).to_s, commit_sha: tagging_commit(branch: branch_one)) }
+          let(:newer_tag) { create_new_tag(find_tag_name(latest_tag.name).to_s, commit_sha: tagging_commit(branch: branch_one)) }
 
           before(:each) { subject.find_current_release(new_tag.tag); pr_three; newer_tag }
-          after(:each) { subject.find_current_release(newer_tag.tag) }
 
           it 'finds the texts of the merged pull requests since the last tag' do
             expect(subject.texts_from_merged_pr(newer_tag, new_tag)).to include(pr_three.body)
@@ -114,7 +134,6 @@ describe ReleaseNotes::Manager do
           let(:newer_tag) { create_new_tag(find_tag_name(new_tag.tag).to_s, commit_sha: tagging_commit) }
 
           before(:each) { pr_four; newer_tag }
-          after(:each) { subject.find_current_release(newer_tag.tag) }
 
           it 'finds the texts of merged pull requests since the last tag' do
             expect(subject.texts_from_merged_pr(newer_tag, old_tag)).to include(pr_one.body, pr_two.body, pr_four.body)
@@ -238,17 +257,18 @@ def create_new_tag(tag_name, commit_sha: nil)
   commit_sha ||= add_content(tag_name).commit.sha
   new_tag = @test_client.create_tag(@repo, tag_name, 'tag_comment', commit_sha, 'commit', @test_client.user.name, @test_client.user.email, Time.now)
   @test_client.create_ref(@repo, 'tags/' + new_tag.tag, new_tag.sha)
-  @githubAPI.find_tag_by_name(new_tag.tag)
-end
-
-def create_new_release(tag_name, body: '')
-  @test_client.create_release(@repo, tag_name, body: body)
+  @api.find_tag_by_name(new_tag.tag)
 end
 
 # FIND
 def find_tag_name(last_tag_name)
   last_tag_name.to_i + 1
 end
+
+def latest_tag
+  @test_client.tags(@repo).first
+end
+
 
 def tagging_commit(branch: 'master')
   @test_client.branch(@repo, branch).commit.sha
