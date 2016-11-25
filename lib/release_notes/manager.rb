@@ -3,9 +3,6 @@ require 'active_support/all'
 module ReleaseNotes
   class Manager
 
-    INCLUDE_PR_TEXT = "- [x] Include this PR in the changelog".freeze
-    END_STRING = /#\D\S/
-
     def initialize(repo, token)
       @api = GithubAPI.new(repo, token)
     end
@@ -17,7 +14,7 @@ module ReleaseNotes
       if release_to_compare.present?
         old_tag = find_latest_published_tag(release_to_compare)
         pr_texts = texts_from_merged_pr(new_tag, old_tag)
-        changelog_text = assemble_changelog(pr_texts)
+        changelog_text = ChangelogParser.assemble_changelog(pr_texts)
       end
 
       old_tag ||= OpenStruct.new(sha: nil, tag: "First Deploy")
@@ -28,11 +25,6 @@ module ReleaseNotes
     def texts_from_merged_pr(new_tag, old_tag)
       commits_between_tags = @api.find_commits_between(old_tag.object.sha, new_tag.object.sha)
       matching_pr_commits(commits_between_tags).map { |commit| commit.body.squish }
-    end
-
-    def assemble_changelog(pr_texts)
-      change_texts = pr_texts.select { |text| text if text.include?(INCLUDE_PR_TEXT) }
-      changelog_text(change_texts)
     end
 
     # update release notes with changelog
@@ -85,20 +77,6 @@ module ReleaseNotes
     def release_notes_headers(server_name, old_tag)
       changes = "Changes Since: Tag " if old_tag.sha
       ["## Deployed to: #{server_name} (#{Time.now.utc.asctime})", "### " + changes.to_s + old_tag.tag]
-    end
-
-    def changelog_text(texts)
-      changes = section_text(texts, "# Changes").join("\n").presence || "No Changes included in the log"
-      closes = section_text(texts, "# Closes").join(',').presence || "Nothing Closed"
-
-      ["### Changes\n#{changes}", "### Closes\n#{closes}"]
-    end
-
-    def section_text(texts, begin_string)
-      texts.map do |text|
-        text.gsub!("- ", "\n- ")
-        text[/#{begin_string}(.*?)#{END_STRING}/m, 1] || text[/#{begin_string}(.*)$/m, 1]
-      end
     end
   end
 end
