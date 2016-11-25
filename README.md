@@ -1,6 +1,6 @@
 ## Release Notes
 
-**Release Notes** is a gem that makes it easy to track updates between deployments to servers. Release Notes compiles the text from your projects merged pull requests to keep your team informed about which changes have been deployed to which servers.
+**Release Notes** is a gem that makes it easy to track updates to servers between deployments. Release Notes compiles the text from your projects merged pull requests to keep your team informed about which changes have been deployed to which servers.
 
 Key features:
 - gives direction to beta user testing to help uncover bugs
@@ -34,7 +34,4 @@ After a new tag is created, pass the ReleaseNotes Manager the server name of the
 ```ruby
 ReleaseNotes::Manager.new('your repo', 'access token').publish_release('server name', 'new tag name')
 ```
-Then on Github go to your releases to view your changelog.
-
-### Possible Caveats
-If none of the releases have been deployed to the specified server, it compares the tag against the previous release. Release Notes assumes that the newly created tag has not been published yet. If the new tag has been published as a release, then the changelog will not be updated. Solution: Delete the Release and re-run the command above.
+Then on Github, go to your releases to view your changelog.
