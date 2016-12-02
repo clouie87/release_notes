@@ -9,7 +9,7 @@ Key features:
 ### Install
 Add Release Notes to your Gemfile:
 ``` ruby
-gem 'release_notes', :github => 'culturecode/release_notes'
+gem 'release_notes', :github => 'clouie87/release_notes'
 ```
 
 ### Setup
