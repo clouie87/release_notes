@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.version     = ReleaseNotes::VERSION
   s.authors     = ["Carol Louie", "Nicholas Jakobsen", "Ryan Wallace"]
   s.email       = ["carol.louie@gmail.com", "nicholas@culturecode.ca", "ryan@culturecode.ca"]
-  s.homepage    = "https://github.com/culturecode/release_notes"
+  s.homepage    = "https://github.com/clouie87/release_notes"
   s.summary     = "Compiles changes between deployments to servers and updates release notes."
   s.description = "Release Notes compiles the text from your projects merged pull requests to keep your team informed about which changes have been deployed to which servers."
   s.license     = "MIT"
