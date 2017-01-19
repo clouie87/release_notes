@@ -9,6 +9,12 @@ module ReleaseNotes
       changelog_text(change_texts)
     end
 
+    def self.last_commit(server_name, metadata)
+      return nil unless metadata
+      metadata = JSON.parse(metadata)
+      metadata[server_name]["commit_sha"]
+    end
+
     private
 
     def self.changelog_text(texts)
