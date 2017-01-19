@@ -9,29 +9,31 @@ module ReleaseNotes
       @api = GithubAPI.new(repo, token)
       @server_name = server_name
       @changelog = ChangelogFile.new(server_name, changelog_file)
-      @release = GithubRelease.new(server_name, @api)
     end
 
     def create_changelog_from_branch(branch)
       new_sha = branch_sha(branch)
+      create_changelog(new_sha)
+    end
+
+    def create_changelog_from_tag(tag_name)
+      new_tag = @api.find_tag_by_name(tag_name)
+      create_changelog(new_tag.object.sha)
+    end
+
+    def create_changelog_from_sha(sha)
+      create_changelog(sha)
+    end
+
+    private
+
+    def create_changelog(new_sha)
       old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
       text = changelog_body(new_sha, old_sha)
       verification_text = @changelog.release_verification_text(new_sha, old_sha)
 
       @changelog.update_changelog(text, verification_text)
     end
-
-    def create_changelog_from_tag(tag_name)
-      new_tag = @api.find_tag_by_name(tag_name)
-      old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata) # will change this to be @release.metadata soon
-      text = changelog_body(new_tag.object.sha, old_sha)
-      verification_text = @changelog.release_verification_text(new_tag.object.sha, old_sha)
-
-      @changelog.update_changelog(text, verification_text)
-      @release.update_release_notes(new_tag, old_sha, text: text, verification_text: verification_text)
-    end
-
-    private
 
     def branch_sha(branch)
       @api.branch(branch).commit.sha
@@ -51,10 +53,6 @@ module ReleaseNotes
       @api.merged_pull_requests.select do |pr|
         (@api.find_pull_request_commits(pr.number).map(&:sha) - commits.map(&:sha)).empty?
       end
-    end
-
-    def find_latest_published_tag(old_release)
-      @api.find_tag_by_name(old_release.tag_name)
     end
   end
 end

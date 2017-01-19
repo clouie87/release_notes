@@ -30,8 +30,8 @@ module ReleaseNotes
       File.rename(new_file, original_file)
     end
 
-    def release_verification_text(new_sha, old_sha, new_tag_sha: nil)
-      {"#{server_name}": {old_sha: old_sha, new_tag_sha: new_tag_sha, commit_sha: new_sha}}
+    def release_verification_text(new_sha, old_sha)
+      {"#{server_name}": {old_sha: old_sha, commit_sha: new_sha}}
     end
 
     private
