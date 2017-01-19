@@ -3,56 +3,48 @@ require 'active_support/all'
 module ReleaseNotes
   class Manager
 
-    def initialize(repo, token)
+    attr_accessor :server_name
+
+    def initialize(repo, token, server_name, changelog_file: "#{server_name}_changelog.md")
       @api = GithubAPI.new(repo, token)
+      @server_name = server_name
+      @changelog = ChangelogFile.new(server_name, changelog_file)
+      @release = GithubRelease.new(server_name, @api)
     end
 
-    def publish_release(server_name, tag_name)
+    def create_changelog_from_branch(branch)
+      new_sha = branch_sha(branch)
+      old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
+      text = changelog_body(new_sha, old_sha)
+      verification_text = @changelog.release_verification_text(new_sha, old_sha)
+
+      @changelog.update_changelog(text, verification_text)
+    end
+
+    def create_changelog_from_tag(tag_name)
       new_tag = @api.find_tag_by_name(tag_name)
-      release_to_compare = find_latest_release(server_name: server_name)
+      old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata) # will change this to be @release.metadata soon
+      text = changelog_body(new_tag.object.sha, old_sha)
+      verification_text = @changelog.release_verification_text(new_tag.object.sha, old_sha)
 
-      if release_to_compare.present?
-        old_tag = find_latest_published_tag(release_to_compare)
-        pr_texts = texts_from_merged_pr(new_tag, old_tag)
-        changelog_text = ChangelogParser.assemble_changelog(pr_texts)
-      end
-
-      old_tag ||= OpenStruct.new(sha: nil, tag: "First Deploy")
-
-      update_release_notes(server_name, new_tag, old_tag, text: changelog_text)
-    end
-
-    def texts_from_merged_pr(new_tag, old_tag)
-      commits_between_tags = @api.find_commits_between(old_tag.object.sha, new_tag.object.sha)
-      matching_pr_commits(commits_between_tags).map { |commit| commit.body.squish }
-    end
-
-    # update release notes with changelog
-    def update_release_notes(server_name, new_tag, old_tag, text: nil)
-      release = find_current_release(new_tag.tag)
-
-      if release.metadata[server_name]
-        puts "Release Notes are already updated for Server #{server_name}"
-        return release
-      end
-
-      verification_text = release_verification_text(server_name, old_tag, new_tag)
-
-      @api.update_release(release, [release_notes_headers(server_name, old_tag), text].join("\n\n"), verification_text)
-    end
-
-    def find_current_release(tag_name)
-      @api.find_release(tag_name)
-    rescue Octokit::NotFound
-      @api.create_release(tag_name)
-      @api.find_release(tag_name)
-    end
-
-    def release_verification_text(server_name, old_tag, new_tag)
-      {"#{server_name}": {old_tag: old_tag.sha, new_tag_sha: new_tag.sha, commit_sha: new_tag.object.sha}}
+      @changelog.update_changelog(text, verification_text)
+      @release.update_release_notes(new_tag, old_sha, text: text, verification_text: verification_text)
     end
 
     private
+
+    def branch_sha(branch)
+      @api.branch(branch).commit.sha
+    end
+
+    def changelog_body(new_sha, old_sha)
+      old_sha.present? ? ChangelogParser.assemble_changelog(texts_from_merged_pr(new_sha, old_sha)) : "First Deploy"
+    end
+
+    def texts_from_merged_pr(new_sha, old_sha)
+      commits_between_tags = @api.find_commits_between(old_sha, new_sha)
+      matching_pr_commits(commits_between_tags).map { |commit| commit.body.squish }
+    end
 
     # find the prs that contain the commits between two tags
     def matching_pr_commits(commits)
@@ -61,22 +53,8 @@ module ReleaseNotes
       end
     end
 
-    # find which release this server was last deployed to
-    def find_latest_release(server_name: nil)
-      return releases.find { |r| r.metadata.keys.include?(server_name.to_s) } if server_name
-    end
-
-    def find_latest_published_tag(old_release)
+    def find_latest_published_tag(old_release) # will be used to find latest release later
       @api.find_tag_by_name(old_release.tag_name)
-    end
-
-    def releases
-      @api.releases
-    end
-
-    def release_notes_headers(server_name, old_tag)
-      changes = "Changes Since: Tag " if old_tag.sha
-      ["## Deployed to: #{server_name} (#{Time.now.utc.asctime})", "### " + changes.to_s + old_tag.tag]
     end
   end
 end

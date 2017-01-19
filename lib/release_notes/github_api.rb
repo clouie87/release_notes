@@ -46,6 +46,10 @@ module ReleaseNotes
       @client.pull_request_commits(@repo, pr)
     end
 
+    def branch(branch)
+      @client.branch(@repo, branch)
+    end
+
     def releases
       populate_releases_metadata(@client.releases(@repo))
     end
