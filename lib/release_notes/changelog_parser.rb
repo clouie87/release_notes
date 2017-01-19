@@ -4,9 +4,9 @@ module ReleaseNotes
     INCLUDE_PR_TEXT = "- [x] Include this PR in the changelog".freeze
     END_STRING = /#\D\S/
 
-    def self.assemble_changelog(pr_texts)
-      change_texts = pr_texts.select { |text| text if text.include?(INCLUDE_PR_TEXT) }
-      changelog_text(change_texts)
+    def self.assemble_changelog(prs)
+      changelog_prs = prs.select { |pr| pr if pr[:text].include?(INCLUDE_PR_TEXT) }
+      ["#### Closed PRS:", changelog_prs_text(changelog_prs)].join("\n\n")
     end
 
     def self.last_commit(server_name, metadata)
@@ -17,17 +17,27 @@ module ReleaseNotes
 
     private
 
-    def self.changelog_text(texts)
-      changes = section_text(texts, "# Changes").join("\n").presence || "No Changes included in the log"
-      closes = section_text(texts, "# Closes").join(',').presence || "Nothing Closed"
-
-      ["### Changes\n#{changes}", "### Closes\n#{closes}"]
+    def self.changelog_prs_text(prs)
+      prs.map do |pr|
+        [header_text(pr[:number], pr[:title]), changelog_text(pr[:text])].join("\n\n")
+      end
     end
 
-    def self.section_text(texts, begin_string)
-      texts.map do |text|
+    def self.header_text(number, title)
+      [ "###### ##{number}", title ].join(' - ')
+    end
+
+    def self.changelog_text(text)
+      changes = section_text(text, "# Changes").presence || "No Changes included in the log"
+      closes = section_text(text, "# Closes").presence || "Nothing Closed"
+
+      ["###### Changes\n\r#{changes}", "\n###### Closes:\n#{closes}"]
+    end
+
+    def self.section_text(text, begin_string)
+      text.tap do |text|
         text.gsub!("- ", "\n- ")
-        text[/#{begin_string}(.*?)#{END_STRING}/m, 1] || text[/#{begin_string}(.*)$/m, 1]
+        return text[/#{begin_string}(.*?)#{END_STRING}/m, 1] || text[/#{begin_string}(.*)$/m, 1]
       end
     end
   end
