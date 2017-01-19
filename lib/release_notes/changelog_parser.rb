@@ -6,6 +6,7 @@ module ReleaseNotes
 
     def self.assemble_changelog(prs)
       changelog_prs = prs.select { |pr| pr if pr[:text].include?(INCLUDE_PR_TEXT) }
+      return "No Closed PRS" if changelog_prs.empty?
       ["#### Closed PRS:", changelog_prs_text(changelog_prs)].join("\n\n")
     end
 
