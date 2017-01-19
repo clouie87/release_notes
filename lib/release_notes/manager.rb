@@ -53,7 +53,7 @@ module ReleaseNotes
       end
     end
 
-    def find_latest_published_tag(old_release) # will be used to find latest release later
+    def find_latest_published_tag(old_release)
       @api.find_tag_by_name(old_release.tag_name)
     end
   end
