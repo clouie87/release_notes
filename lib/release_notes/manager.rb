@@ -13,27 +13,23 @@ module ReleaseNotes
 
     def create_changelog_from_branch(branch)
       new_sha = branch_sha(branch)
-      create_changelog(new_sha)
+      create_changelog_from_sha(new_sha)
     end
 
     def create_changelog_from_tag(tag_name)
       new_tag = @api.find_tag_by_name(tag_name)
-      create_changelog(new_tag.object.sha)
+      create_changelog_from_sha(new_tag.object.sha)
     end
 
-    def create_changelog_from_sha(sha)
-      create_changelog(sha)
-    end
-
-    private
-
-    def create_changelog(new_sha)
+    def create_changelog_from_sha(new_sha)
       old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
       text = changelog_body(new_sha, old_sha)
       verification_text = @changelog.release_verification_text(new_sha, old_sha)
 
       @changelog.update_changelog(text, verification_text)
     end
+
+    private
 
     def branch_sha(branch)
       @api.branch(branch).commit.sha
