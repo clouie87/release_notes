@@ -17,8 +17,10 @@ module ReleaseNotes
       original_file = "./#{file_path}"
       new_file = original_file + '.new'
 
+      text = [changelog_header,changelog_text].join("\n\n") + "\n\n"
+
       open(new_file, 'w') do |f|
-       f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n"
+       f.puts text
        f.puts verification_text.to_json
        f.puts "\n\n"
        File.foreach(original_file) do |li|
@@ -28,10 +30,12 @@ module ReleaseNotes
 
       File.rename(original_file, original_file + '.old')
       File.rename(new_file, original_file)
+
+      return text
     end
 
-    def release_verification_text(new_sha, old_sha, new_tag_sha: nil)
-      {"#{server_name}": {old_sha: old_sha, new_tag_sha: new_tag_sha, commit_sha: new_sha}}
+    def release_verification_text(new_sha, old_sha)
+      {"#{server_name}": {old_sha: old_sha, commit_sha: new_sha}}
     end
 
     private
