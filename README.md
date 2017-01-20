@@ -38,17 +38,17 @@ ReleaseNotes::Manager.new('your repo', 'access token', 'server_name')
 There are three ways to create the changelog:
 ```ruby
 # create changelog by branch
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_branch("branch_name")
+ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_branch('branch_name')
 ```
 
 ```ruby
 # create changelog by tag
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_tag("tag_name")
+ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_tag('tag_name')
 ```
 
 ```ruby
 # create changelog by sha
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_sha("sha")
+ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_sha('sha')
 ```
 
 Then on Github, a file will be added to your project `{server_name}_changelog.md`
