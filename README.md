@@ -30,25 +30,18 @@ gem 'release_notes', :github => 'clouie87/release_notes'
 2. Create an [OAuth token](https://developer.github.com/v3/oauth/) to access your repo through the Github API. You can [create access tokens in GitHub Account Settings](https://help.github.com/articles/creating-an-access-token-for-command-line-use/).
 
 ### Usage
-Pass the ReleaseNotes Manager your repo, the access_token and server name of the deployment:
+Pass the ReleaseNotes Manager your repo, the access_token and server name. There are methods that can be called to create the changelog:
 ```ruby
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name')
-```
+release_manager = ReleaseNotes::Manager.new('your repo', 'access token', 'server_name')
 
-There are three ways to create the changelog:
-```ruby
 # create changelog by branch
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_branch('branch_name')
-```
+release_manager.create_changelog_from_branch('branch_name')
 
-```ruby
 # create changelog by tag
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_tag('tag_name')
-```
+release_manager.create_changelog_from_tag('tag_name')
 
-```ruby
 # create changelog by sha
-ReleaseNotes::Manager.new('your repo', 'access token', 'server_name').create_changelog_from_sha('sha')
+release_manager.create_changelog_from_sha('sha')
 ```
 
 Then on Github, a file will be added to your project `{server_name}_changelog.md`
