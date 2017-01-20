@@ -7,8 +7,9 @@ module ReleaseNotes
 
     def initialize(repo, token, server_name, changelog_file: "#{server_name}_changelog.md")
       @api = GithubAPI.new(repo, token)
+      @changelog_file = changelog_file
       @server_name = server_name
-      @changelog = ChangelogFile.new(server_name, changelog_file)
+      @changelog = ChangelogFile.new(server_name, changelog_file, @api)
     end
 
     def create_changelog_from_branch(branch)
@@ -24,9 +25,9 @@ module ReleaseNotes
     def create_changelog_from_sha(new_sha)
       old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
       text = changelog_body(new_sha, old_sha)
-      verification_text = @changelog.release_verification_text(new_sha, old_sha)
 
-      @changelog.update_changelog(text, verification_text)
+      @changelog.update_changelog(text, new_sha, old_sha)
+      @changelog.push_changelog_to_github
     end
 
     private

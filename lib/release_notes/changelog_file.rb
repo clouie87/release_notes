@@ -3,35 +3,38 @@ module ReleaseNotes
 
     attr_accessor :server_name, :file_path
 
-    def initialize(server_name, file_path)
+    def initialize(server_name, file_path, api)
       @server_name = server_name
       @file_path = file_path
       @file = File.open(file_path, 'a+') # need to create it if it doesn't already exist
+      @api = api
     end
 
     def metadata
       find_last_metadata
     end
 
-    def update_changelog(changelog_text, verification_text)
+    def update_changelog(changelog_text, new_sha, old_sha)
       original_file = "./#{file_path}"
       new_file = original_file + '.new'
 
-      text = [changelog_header,changelog_text].join("\n\n") + "\n\n"
-
       open(new_file, 'w') do |f|
-       f.puts text
-       f.puts verification_text.to_json
-       f.puts "\n\n"
-       File.foreach(original_file) do |li|
-         f.puts li
-       end
+        f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n" + release_verification_text(new_sha, old_sha).to_json + "\n\n"
+        f.puts File.read(original_file)
       end
 
       File.rename(original_file, original_file + '.old')
       File.rename(new_file, original_file)
+    end
 
-      return text
+    def push_changelog_to_github
+      changelog_content = File.read(@file_path)
+      file = @api.find_content(@file_path)
+      if file.present?
+        @api.update_changelog(file, changelog_content)
+      else
+        @api.create_content(@file_path, changelog_content)
+      end
     end
 
     def release_verification_text(new_sha, old_sha)

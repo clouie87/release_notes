@@ -45,5 +45,19 @@ module ReleaseNotes
     def branch(branch)
       @client.branch(@repo, branch)
     end
+
+    def find_content(changelog_file)
+      @client.contents(@repo, path: changelog_file)
+    rescue
+      return nil
+    end
+
+    def update_changelog(file, changelog_content, message: "Updating Changelog", branch: "master")
+      @client.update_contents(@repo, file.path, message, file.sha, changelog_content, branch: "master")
+    end
+
+    def create_content(changelog_file, changelog_content, message: "Updating Changelog", branch: "master")
+      @client.create_content(@repo, changelog_file, message, branch: branch, file: changelog_file)
+    end
   end
 end
