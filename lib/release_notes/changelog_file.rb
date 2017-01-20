@@ -17,21 +17,15 @@ module ReleaseNotes
       original_file = "./#{file_path}"
       new_file = original_file + '.new'
 
-      text = [changelog_header,changelog_text].join("\n\n") + "\n\n"
-
       open(new_file, 'w') do |f|
-       f.puts text
-       f.puts verification_text.to_json
-       f.puts "\n\n"
-       File.foreach(original_file) do |li|
-         f.puts li
-       end
+        f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n" + verification_text.to_json + "\n\n"
+        f.puts File.read(original_file)
       end
 
       File.rename(original_file, original_file + '.old')
       File.rename(new_file, original_file)
 
-      return text
+      return File.read(original_file)
     end
 
     def release_verification_text(new_sha, old_sha)

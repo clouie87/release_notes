@@ -7,6 +7,7 @@ module ReleaseNotes
 
     def initialize(repo, token, server_name, changelog_file: "#{server_name}_changelog.md")
       @api = GithubAPI.new(repo, token)
+      @changelog_file = changelog_file
       @server_name = server_name
       @changelog = ChangelogFile.new(server_name, changelog_file)
     end
@@ -26,7 +27,18 @@ module ReleaseNotes
       text = changelog_body(new_sha, old_sha)
       verification_text = @changelog.release_verification_text(new_sha, old_sha)
 
-      @changelog.update_changelog(text, verification_text)
+      changelog_content = @changelog.update_changelog(text, verification_text)
+      update_github_changelog(changelog_content)
+      return changelog_content
+    end
+
+    def update_github_changelog(changelog_content)
+      file = @api.find_content(@changelog_file)
+      if file.present?
+        @api.update_changelog(file, changelog_content)
+      else
+        @api.create_content(@changelog_file, changelog_content)
+      end
     end
 
     private
