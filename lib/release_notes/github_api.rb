@@ -30,12 +30,22 @@ module ReleaseNotes
       @client.tag(@repo, tag_sha)
     end
 
-    def merged_pull_requests
-      closed_pull_requests.select(&:merged_at?)
+    def merged_pull_requests(old_sha)
+      closed_pull_requests_between(old_sha).select(&:merged_at?)
+    end
+
+    def closed_pull_requests_between(old_sha)
+      closed_pull_requests.take_while do |pr|
+        pr.updated_at > last_commit_date(old_sha)
+      end
+    end
+
+    def last_commit_date(old_sha)
+      @client.commit(@repo, old_sha).commit.committer.date
     end
 
     def closed_pull_requests
-      @client.pull_requests(@repo, state: 'closed')
+      @client.pull_requests(@repo, state: 'closed', sort: 'updated', direction: "desc")
     end
 
     def find_pull_request_commits(pr)
@@ -48,7 +58,7 @@ module ReleaseNotes
 
     def find_content(changelog_file)
       @client.contents(@repo, path: changelog_file)
-    rescue
+    rescue Octokit::NotFound
       return nil
     end
 
