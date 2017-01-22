@@ -19,6 +19,10 @@ describe ReleaseNotes::Manager do
     let(:branch) { create_branch }
     let(:pr) { setup_issue_commit_pr('master', branch) }
 
+    before(:each) do
+      sleep 1 # Github Best Practices https://developer.github.com/guides/best-practices-for-integrators/#dealing-with-rate-limits
+    end
+
     before(:each) { branch; pr }
 
     subject { ReleaseNotes::Manager.new(@repo, @access_token, DEFAULT_SERVER) }

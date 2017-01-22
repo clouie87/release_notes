@@ -42,12 +42,12 @@ module ReleaseNotes
 
     def texts_from_merged_pr(new_sha, old_sha)
       commits_between_tags = @api.find_commits_between(old_sha, new_sha)
-      matching_pr_commits(commits_between_tags).map { |commit| {number: commit.number, title: commit.title, text: commit.body.squish } }
+      matching_pr_commits(commits_between_tags, old_sha).map { |commit| {number: commit.number, title: commit.title, text: commit.body.squish } }
     end
 
     # find the prs that contain the commits between two tags
-    def matching_pr_commits(commits)
-      @api.merged_pull_requests.select do |pr|
+    def matching_pr_commits(commits, old_sha)
+      @api.merged_pull_requests(old_sha).select do |pr|
         (@api.find_pull_request_commits(pr.number).map(&:sha) - commits.map(&:sha)).empty?
       end
     end
