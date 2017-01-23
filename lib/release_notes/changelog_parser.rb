@@ -24,6 +24,12 @@ module ReleaseNotes
       end
     end
 
+    def self.changelog_summary(prs)
+      prs.map do |pr|
+        [header_text(pr[:number], pr[:title]), "Closes:", section_text(pr[:text], "# Closes")].join(' ')
+      end
+    end
+
     def self.header_text(number, title)
       [ "###### ##{number}", title ].join(' - ')
     end

@@ -24,10 +24,11 @@ module ReleaseNotes
 
     def create_changelog_from_sha(new_sha)
       old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
-      text = changelog_body(new_sha, old_sha)
+      prs = texts_from_merged_pr(new_sha, old_sha)
+      text = changelog_body(old_sha, prs)
 
       @changelog.update_changelog(text, new_sha, old_sha)
-      @changelog.push_changelog_to_github
+      @changelog.push_changelog_to_github(prs)
     end
 
     private
@@ -36,8 +37,8 @@ module ReleaseNotes
       @api.branch(branch).commit.sha
     end
 
-    def changelog_body(new_sha, old_sha)
-      old_sha.present? ? ChangelogParser.assemble_changelog(texts_from_merged_pr(new_sha, old_sha)) : "First Deploy"
+    def changelog_body(old_sha, prs)
+      old_sha.present? ? ChangelogParser.assemble_changelog(prs) : "First Deploy"
     end
 
     def texts_from_merged_pr(new_sha, old_sha)
