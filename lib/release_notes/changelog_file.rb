@@ -27,11 +27,12 @@ module ReleaseNotes
       File.rename(new_file, original_file)
     end
 
-    def push_changelog_to_github
+    def push_changelog_to_github(prs)
       changelog_content = File.read(@file_path)
       file = @api.find_content(@file_path)
       if file.present?
-        @api.update_changelog(file, changelog_content)
+        summary = changelog_header + "\n\n" + ChangelogParser.changelog_summary(prs).join("\n\n")
+        @api.update_changelog(file, summary, changelog_content)
       else
         @api.create_content(@file_path, changelog_content)
       end
