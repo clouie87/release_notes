@@ -24,7 +24,8 @@ module ReleaseNotes
 
     def create_changelog_from_sha(new_sha)
       old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
-      prs = texts_from_merged_pr(new_sha, old_sha)
+
+      prs = texts_from_merged_pr(new_sha, old_sha) if old_sha
       text = changelog_body(old_sha, prs)
 
       @changelog.update_changelog(text, new_sha, old_sha)
