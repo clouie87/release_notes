@@ -1,3 +1,5 @@
+require "base64"
+
 module ReleaseNotes
   class ChangelogFile
 
@@ -14,13 +16,17 @@ module ReleaseNotes
       find_last_metadata
     end
 
-    def update_changelog(changelog_text, new_sha, old_sha)
+    def update_changelog(changelog_text, new_sha, old_sha, content: nil)
       original_file = "./#{file_path}"
       new_file = original_file + '.new'
 
       open(new_file, 'w') do |f|
         f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n" + "[meta_data]: " + release_verification_text(new_sha, old_sha).to_json + "\n\n"
-        f.puts File.read(original_file)
+        if content.present?
+          f.puts content
+        else
+          f.puts File.read(original_file)
+        end
       end
 
       File.rename(original_file, original_file + '.old')
@@ -36,6 +42,12 @@ module ReleaseNotes
       else
         @api.create_content(@file_path, changelog_content)
       end
+    end
+
+    def git_changelog
+      file = @api.find_content(@file_path)
+      return nil unless file.present?
+      Base64.decode64(file.content).force_encoding("UTF-8")
     end
 
     def release_verification_text(new_sha, old_sha)
