@@ -19,7 +19,7 @@ module ReleaseNotes
       new_file = original_file + '.new'
 
       open(new_file, 'w') do |f|
-        f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n" + release_verification_text(new_sha, old_sha).to_json + "\n\n"
+        f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n" + "[meta_data]: " + release_verification_text(new_sha, old_sha).to_json + "\n\n"
         f.puts File.read(original_file)
       end
 
