@@ -10,12 +10,13 @@ describe ReleaseNotes::ChangelogParser do
     let(:issue_one) { "#3" }
     let(:pr_one) { create_merged_pr(change_one, issue_one) }
     let(:default_result) { "#### Closed PRS:" + create_result(pr_one, change_one, issue_one) }
+    let(:default_changelog) { ["Closed PR: ##{pr_one[:number]} - #{pr_one[:title]} Closes:  #{issue_one} "] }
     let(:nothing_added) { "No Closed PRS" }
 
     describe 'special_handling' do
-      it 'does not include merged_prs that have not checked Include this PR in changelog' do
-        prs = pr_one.merge(text: "### Special Handling - [] Include this PR in the changelog")
-        expect(subject.assemble_changelog([prs])).to eq(nothing_added)
+      it 'does not include merged_prs that have not checked Include this PR in changelog with bullet' do
+        pr_one[:text].gsub!('### Special Handling - [x] Include this PR in the changelog', '### Special Handling - [] Include this PR in the changelog')
+        expect(subject.assemble_changelog([pr_one])).to eq(nothing_added)
       end
 
       it 'does not update the changelog if no merged_prs are passed' do
@@ -23,8 +24,34 @@ describe ReleaseNotes::ChangelogParser do
         expect(subject.assemble_changelog(prs)).to eq(nothing_added)
       end
 
-      it 'includes merged_prs that are checked to Include this PR in changelog' do
+      it 'includes merged_prs that are checked to Include this PR in changelog with bullet' do
         expect(subject.assemble_changelog([pr_one])).to eq(default_result)
+      end
+
+      it 'includes merged_prs that have not checked Include this PR in changelog without bullet' do
+        pr_one[:text].gsub!('### Special Handling - [x] Include this PR in the changelog', '### Special Handling [x] Include this PR in the changelog')
+        expect(subject.assemble_changelog([pr_one])).to eq(default_result)
+      end
+    end
+
+    describe "#changelog_summary" do
+      it 'does not include merged_prs that have not checked Include this PR in changelog with bullet' do
+        pr_one[:text].gsub!('### Special Handling - [x] Include this PR in the changelog', '### Special Handling - [] Include this PR in the changelog')
+        expect(subject.changelog_summary([pr_one])).to eq([nothing_added])
+      end
+
+      it 'does not update the changelog if no merged_prs are passed' do
+        prs = []
+        expect(subject.changelog_summary(prs)).to eq([nothing_added])
+      end
+
+      it 'includes merged_prs that are checked to Include this PR in changelog with bullet' do
+        expect(subject.changelog_summary([pr_one])).to eq(default_changelog)
+      end
+
+      it 'includes merged_prs that have not checked Include this PR in changelog without bullet' do
+        pr_one[:text].gsub!('### Special Handling - [x] Include this PR in the changelog', '### Special Handling [x] Include this PR in the changelog')
+        expect(subject.changelog_summary([pr_one])).to eq(default_changelog)
       end
     end
 
