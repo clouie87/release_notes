@@ -1,11 +1,11 @@
 module ReleaseNotes
   class ChangelogParser
 
-    INCLUDE_PR_TEXT = "- [x] Include this PR in the changelog".freeze
+    INCLUDE_PR_TEXT = "[x] Include this PR in the changelog".freeze
     END_STRING = /#\D\S/
 
     def self.assemble_changelog(prs)
-      changelog_prs = prs.select { |pr| pr if pr[:text].include?(INCLUDE_PR_TEXT) }
+      changelog_prs = changelog_prs(prs)
       return "No Closed PRS" if changelog_prs.empty?
       ["#### Closed PRS:", changelog_prs_text(changelog_prs)].join("\n\n")
     end
@@ -16,18 +16,23 @@ module ReleaseNotes
       metadata[server_name]["commit_sha"]
     end
 
+    def self.changelog_summary(prs)
+      changelog_prs = changelog_prs(prs)
+      return ["No Closed PRS"] if changelog_prs.empty?
+      changelog_prs.map do |pr|
+        ["Closed PR: ##{pr[:number]} - #{pr[:title]}", "Closes:", section_text(pr[:text], "# Closes")].join(' ')
+      end
+    end
+
     private
+
+    def self.changelog_prs(prs)
+      prs.select { |pr| pr if pr[:text].include?(INCLUDE_PR_TEXT) }
+    end
 
     def self.changelog_prs_text(prs)
       prs.map do |pr|
         [header_text(pr[:number], pr[:title]), changelog_text(pr[:text])].join("\n\n")
-      end
-    end
-
-    def self.changelog_summary(prs)
-      retrun "No Changes" unless prs
-      prs.map do |pr|
-        ["Closed PR: ##{pr[:number]} - #{pr[:title]}", "Closes:", section_text(pr[:text], "# Closes")].join(' ')
       end
     end
 
