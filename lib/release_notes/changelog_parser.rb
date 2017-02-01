@@ -27,7 +27,7 @@ module ReleaseNotes
     def self.changelog_summary(prs)
       retrun "No Changes" unless prs
       prs.map do |pr|
-        ["Closed PR: ##{pr[:number]} - #{pr[:title]}", "Closes", section_text(pr[:text], "# Closes")].join(' ')
+        ["Closed PR: ##{pr[:number]} - #{pr[:title]}", "Closes:", section_text(pr[:text], "# Closes")].join(' ')
       end
     end
 
