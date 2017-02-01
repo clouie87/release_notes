@@ -1,3 +1,5 @@
+require "base64"
+
 module ReleaseNotes
   class ChangelogFile
 
@@ -10,17 +12,23 @@ module ReleaseNotes
       @api = api
     end
 
+    def update(text, new_sha, old_sha, prs)
+      update_changelog(ChangelogParser.update_changelog(text, new_sha, old_sha, server_name))
+      push_changelog_to_github(prs)
+      remove_files
+    end
+
     def metadata
       find_last_metadata
     end
 
-    def update_changelog(changelog_text, new_sha, old_sha)
+    def update_changelog(text)
       original_file = "./#{file_path}"
       new_file = original_file + '.new'
 
       open(new_file, 'w') do |f|
-        f.puts [changelog_header,changelog_text].join("\n\n") + "\n\n" + "[meta_data]: " + release_verification_text(new_sha, old_sha).to_json + "\n\n"
-        f.puts File.read(original_file)
+        f.puts text
+        f.puts old_changelog_content
       end
 
       File.rename(original_file, original_file + '.old')
@@ -29,10 +37,8 @@ module ReleaseNotes
 
     def push_changelog_to_github(prs)
       changelog_content = File.read(@file_path)
-      file = @api.find_content(@file_path)
-      if file.present?
-        summary = changelog_header + "\n\n" + ChangelogParser.changelog_summary(prs).join("\n\n")
-        @api.update_changelog(file, summary, changelog_content)
+      if github_file.present?
+        @api.update_changelog(github_file, ChangelogParser.create_summary(prs, server_name), changelog_content)
       else
         @api.create_content(@file_path, changelog_content)
       end
@@ -43,21 +49,22 @@ module ReleaseNotes
       File.delete("#{@file_path}.old")
     end
 
-    def release_verification_text(new_sha, old_sha)
-      {"#{server_name}": {old_sha: old_sha, commit_sha: new_sha}}
+    private
+
+    def github_file
+      @api.find_content(@file_path)
     end
 
-    private
+    def old_changelog_content
+      return nil unless github_file.present?
+      Base64.decode64(github_file.content).force_encoding("UTF-8")
+    end
 
     def find_last_metadata
       File.open(file_path, "r") do |f|
         text = f.read
         text[/{"#{server_name}"(.*)/]
       end
-    end
-
-    def changelog_header
-      "## Deployed to: #{server_name} (#{Time.now.utc.asctime})"
     end
   end
 end
