@@ -10,11 +10,21 @@ module ReleaseNotes
       ["#### Closed PRS:", changelog_prs_text(changelog_prs)].join("\n\n")
     end
 
+    def self.update_changelog(changelog_text, new_sha, old_sha, server_name)
+      [changelog_header(server_name), changelog_text].join("\n\n") + "\n\n" + "[meta_data]: " + release_verification_text(new_sha, old_sha, server_name).to_json + "\n\n"
+    end
+
     def self.last_commit(server_name, metadata)
       return nil unless metadata
       metadata = JSON.parse(metadata)
       metadata[server_name]["commit_sha"]
     end
+
+    def self.create_summary(prs, server_name)
+      [changelog_header(server_name), changelog_summary(prs).join("\n\n")].join("\n\n")
+    end
+
+    private
 
     def self.changelog_summary(prs)
       changelog_prs = changelog_prs(prs)
@@ -23,8 +33,6 @@ module ReleaseNotes
         ["Closed PR: ##{pr[:number]} - #{pr[:title]}", "Closes:", section_text(pr[:text], "# Closes")].join(' ')
       end
     end
-
-    private
 
     def self.changelog_prs(prs)
       return [] unless prs
@@ -35,6 +43,14 @@ module ReleaseNotes
       prs.map do |pr|
         [header_text(pr[:number], pr[:title]), changelog_text(pr[:text])].join("\n\n")
       end
+    end
+
+    def self.changelog_header(server_name)
+      "## Deployed to: #{server_name} (#{Time.now.utc.asctime})"
+    end
+
+    def self.release_verification_text(new_sha, old_sha, server_name)
+      {"#{server_name}": {old_sha: old_sha, commit_sha: new_sha}}
     end
 
     def self.header_text(number, title)

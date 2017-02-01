@@ -12,25 +12,23 @@ module ReleaseNotes
       @changelog = ChangelogFile.new(server_name, changelog_file, @api)
     end
 
-    def create_changelog_from_branch(branch)
+    def create_changelog_from_branch(branch, old_sha: nil)
       new_sha = branch_sha(branch)
-      create_changelog_from_sha(new_sha)
+      create_changelog_from_sha(new_sha, old_sha)
     end
 
-    def create_changelog_from_tag(tag_name)
+    def create_changelog_from_tag(tag_name, old_sha: nil)
       new_tag = @api.find_tag_by_name(tag_name)
-      create_changelog_from_sha(new_tag.object.sha)
+      create_changelog_from_sha(new_tag.object.sha, old_sha)
     end
 
-    def create_changelog_from_sha(new_sha)
-      old_sha = ChangelogParser.last_commit(server_name, @changelog.metadata)
+    def create_changelog_from_sha(new_sha, old_sha)
+      old_sha ||= ChangelogParser.last_commit(server_name, @changelog.metadata)
 
       prs = texts_from_merged_pr(new_sha, old_sha) if old_sha
       text = changelog_body(old_sha, prs)
 
-      @changelog.update_changelog(text, new_sha, old_sha)
-      @changelog.push_changelog_to_github(prs)
-      @changelog.remove_files
+      @changelog.update(text, new_sha, old_sha, prs)
     end
 
     def changelog_body(old_sha, prs)
