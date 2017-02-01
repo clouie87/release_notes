@@ -30,12 +30,7 @@ module ReleaseNotes
 
       @changelog.update_changelog(text, new_sha, old_sha)
       @changelog.push_changelog_to_github(prs)
-    end
-
-    private
-
-    def branch_sha(branch)
-      @api.branch(branch).commit.sha
+      @changelog.remove_files
     end
 
     def changelog_body(old_sha, prs)
@@ -45,6 +40,12 @@ module ReleaseNotes
     def texts_from_merged_pr(new_sha, old_sha)
       commits_between_tags = @api.find_commits_between(old_sha, new_sha)
       matching_pr_commits(commits_between_tags, old_sha).map { |commit| {number: commit.number, title: commit.title, text: commit.body.squish } }
+    end
+
+    private
+
+    def branch_sha(branch)
+      @api.branch(branch).commit.sha
     end
 
     # find the prs that contain the commits between two tags

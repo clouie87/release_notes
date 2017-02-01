@@ -38,6 +38,11 @@ module ReleaseNotes
       end
     end
 
+    def remove_files
+      File.delete(@file_path)
+      File.delete("#{@file_path}.old")
+    end
+
     def release_verification_text(new_sha, old_sha)
       {"#{server_name}": {old_sha: old_sha, commit_sha: new_sha}}
     end
