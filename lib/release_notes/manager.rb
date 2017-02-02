@@ -22,7 +22,7 @@ module ReleaseNotes
       create_changelog_from_sha(new_tag.object.sha, old_sha)
     end
 
-    def create_changelog_from_sha(new_sha, old_sha)
+    def create_changelog_from_sha(new_sha, old_sha: nil)
       old_sha ||= ChangelogParser.last_commit(server_name, @changelog.metadata)
 
       prs = texts_from_merged_pr(new_sha, old_sha) if old_sha
