@@ -66,7 +66,6 @@ describe ReleaseNotes::Manager do
   after(:all) do
     puts "delete created repo"
     @test_client.delete_repo(@repo)
-    File.delete("fake_changelog.md")
   end
 end
 
