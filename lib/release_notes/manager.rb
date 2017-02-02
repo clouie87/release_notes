@@ -14,12 +14,12 @@ module ReleaseNotes
 
     def create_changelog_from_branch(branch, old_sha: nil)
       new_sha = branch_sha(branch)
-      create_changelog_from_sha(new_sha, old_sha)
+      create_changelog_from_sha(new_sha, old_sha: old_sha)
     end
 
     def create_changelog_from_tag(tag_name, old_sha: nil)
       new_tag = @api.find_tag_by_name(tag_name)
-      create_changelog_from_sha(new_tag.object.sha, old_sha)
+      create_changelog_from_sha(new_tag.object.sha, old_sha: old_sha)
     end
 
     def create_changelog_from_sha(new_sha, old_sha: nil)
