@@ -15,7 +15,7 @@ describe ReleaseNotes::Manager do
     @api = ReleaseNotes::GithubAPI.new(@repo, ENV['GITHUB_API_TOKEN'])
   end
 
-  describe '#create_changelog_from_sha' do
+  describe '#texts_from_merged_pr' do
     let(:branch) { create_branch }
     let(:pr) { setup_issue_commit_pr('master', branch) }
 
@@ -28,13 +28,7 @@ describe ReleaseNotes::Manager do
     subject { ReleaseNotes::Manager.new(@repo, @access_token, DEFAULT_SERVER) }
 
     it 'informs that it is the First Deploy if nothing to compare against' do
-      expect(ReleaseNotes::Manager.new(@repo, @access_token, "fake").create_changelog_from_sha(pr.merge_commit_sha)).to include("First Deploy")
-    end
-
-    it 'compares against the last commit to the server' do
-      subject.create_changelog_from_sha(pr.merge_commit_sha)
-      pr_two = setup_issue_commit_pr('master', branch)
-      expect(subject.create_changelog_from_sha(pr_two.merge_commit_sha)).to include(pr_two.title)
+      expect(ReleaseNotes::Manager.new(@repo, @access_token, "fake").changelog_body(nil, [pr])).to include("First Deploy")
     end
 
     context 'when commits are merged into one branch and then merged into another_branch' do
@@ -46,36 +40,32 @@ describe ReleaseNotes::Manager do
 
       before(:each) { branch_one; branch_two; pr_three; pr_four; unmerged_pr }
 
-      it 'finds all the prs since the last deploy' do
+      it 'finds all the prs betweeen two shas' do
         subject.create_changelog_from_sha(pr.merge_commit_sha)
-        expect(subject.create_changelog_from_sha(pr_four.merge_commit_sha)).to include(pr_three.title, pr_four.title)
+        expect(subject.texts_from_merged_pr(pr_four.merge_commit_sha, pr.merge_commit_sha)).to include(pr_commit(pr_four), pr_commit(pr_three))
       end
 
       it 'finds all the pr texts when a branch is merged into another branch' do
         subject.create_changelog_from_sha(pr.merge_commit_sha)
         pr_five =  create_and_merge_pull_request(main_branch: 'master', feature_branch: branch_one)
-        expect(subject.create_changelog_from_sha(pr_five.merge_commit_sha)).to include(pr_three.title, pr_four.title, pr_five.title)
+        expect(subject.texts_from_merged_pr(pr_five.merge_commit_sha, pr.merge_commit_sha)).to include(pr_commit(pr_five), pr_commit(pr_four), pr_commit(pr_three))
       end
 
       it "does not find unmerged prs" do
         subject.create_changelog_from_sha(pr.merge_commit_sha)
-        expect(subject.create_changelog_from_sha(pr_four.merge_commit_sha)).not_to include(unmerged_pr.title)
+        expect(subject.texts_from_merged_pr(pr_four.merge_commit_sha, pr.merge_commit_sha)).not_to include(pr_commit(unmerged_pr))
       end
 
       it "does not find prs that have already been in the changelog" do
         subject.create_changelog_from_sha(pr_three.merge_commit_sha)
-        expect(subject.create_changelog_from_sha(pr_four.merge_commit_sha)).not_to include(pr_three.title)
+        expect(subject.texts_from_merged_pr(pr_four.merge_commit_sha, pr_three.merge_commit_sha)).not_to include(pr_commit(pr_three))
       end
     end
-
-    after(:each) { File.delete("#{DEFAULT_SERVER}_changelog.md")}
   end
 
   after(:all) do
     puts "delete created repo"
     @test_client.delete_repo(@repo)
-    File.delete("#{DEFAULT_SERVER}_changelog.md.old")
-    File.delete("fake_changelog.md.old")
     File.delete("fake_changelog.md")
   end
 end
@@ -132,6 +122,10 @@ end
 
 def add_content(tag, branch_name: "master")
   @test_client.create_content(@repo, "lib/test#{tag}.rb", 'AddingContent', 'Closes Issue#1', :branch => branch_name)
+end
+
+def pr_commit(commit)
+  {number: commit.number, title: commit.title, text: commit.body.squish }
 end
 
 # CHANGELOG TEXT
