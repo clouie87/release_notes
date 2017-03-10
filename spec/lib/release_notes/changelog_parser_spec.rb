@@ -63,6 +63,13 @@ describe ReleaseNotes::ChangelogParser do
         expect(subject.assemble_changelog([pr_one, pr_two])).to eq("#### Closed PRS:" + create_result(pr_one, change_one, issue_one) + create_result(pr_two, change_two, issue_two))
       end
 
+      it 'parses content with # in them' do
+        change_two = "- adds map using `#some_method`"
+        issue_two = "#20"
+        pr_two = create_merged_pr(change_two, issue_two)
+        expect(subject.assemble_changelog([pr_one, pr_two])).to include("#{change_two}")
+      end
+
       it 'returns content to inform nothing was closed when issue data is missing' do
         pr = pr_one.merge(text: "### Changes #{change_one} ### Special Handling - [x] Include this PR in the changelog")
         expect(subject.assemble_changelog([pr])).to include("Nothing Closed")
