@@ -2,7 +2,7 @@ module ReleaseNotes
   class ChangelogParser
 
     INCLUDE_PR_TEXT = "[x] Include this PR in the changelog".freeze
-    END_STRING = /#\D\S/
+    END_STRING = /#\W\S/
 
     def self.assemble_changelog(prs)
       changelog_prs = changelog_prs(prs)
