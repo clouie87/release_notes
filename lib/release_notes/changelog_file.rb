@@ -5,10 +5,11 @@ module ReleaseNotes
 
     attr_accessor :server_name, :file_path
 
-    def initialize(server_name, api)
+    def initialize(server_name, api, changelog_repo)
       @file_path = "#{server_name.downcase.parameterize.snakecase}_changelog.md"
       @server_name = server_name
       @api = api
+      @changelog_repo = changelog_repo
     end
 
     def update(text, new_sha, old_sha, prs)
@@ -24,9 +25,9 @@ module ReleaseNotes
     def push_changelog_to_github(changelog_content, summary)
       if github_file.present?
         content = changelog_content + old_changelog_content
-        @api.update_changelog(github_file, summary, content)
+        @api.update_changelog(github_file, summary, content, changelog_repo: @changelog_repo)
       else
-        @api.create_content(@file_path, changelog_content)
+        @api.create_content(@file_path, changelog_content, changelog_repo: @changelog_repo)
       end
     end
 

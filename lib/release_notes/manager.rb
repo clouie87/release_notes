@@ -5,10 +5,10 @@ module ReleaseNotes
 
     attr_accessor :server_name
 
-    def initialize(repo, token, server_name)
+    def initialize(repo, token, server_name, changelog_repo: nil)
       @api = GithubAPI.new(repo, token)
       @server_name = server_name
-      @changelog = ChangelogFile.new(server_name, @api)
+      @changelog = ChangelogFile.new(server_name, @api, changelog_repo)
     end
 
     def create_changelog_from_branch(branch, old_sha: nil)

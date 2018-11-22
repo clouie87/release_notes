@@ -62,11 +62,13 @@ module ReleaseNotes
       return nil
     end
 
-    def update_changelog(file, summary, changelog_content, branch: "master")
+    def update_changelog(file, summary, changelog_content, changelog_repo: nil, branch: "master")
+      @client.update_contents(changelog_repo, file.path, summary, file.sha, changelog_content, branch: "master") if changelog_repo
       @client.update_contents(@repo, file.path, summary, file.sha, changelog_content, branch: "master")
     end
 
-    def create_content(file, changelog_content, message: "Creating Changelog", branch: "master")
+    def create_content(file, changelog_content, message: "Creating Changelog", changelog_repo: nil, branch: "master")
+      @client.create_content(changelog_repo, file, message, changelog_content, branch: branch) if changelog_repo
       @client.create_content(@repo, file, message, changelog_content, branch: branch)
     end
   end
