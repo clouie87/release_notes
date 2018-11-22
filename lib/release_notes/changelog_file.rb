@@ -6,7 +6,7 @@ module ReleaseNotes
     attr_accessor :server_name, :file_path
 
     def initialize(server_name, api)
-      @file_path = "#{server_name}_changelog.md"
+      @file_path = "#{server_name.downcase.parameterize.snakecase}_changelog.md"
       @server_name = server_name
       @api = api
     end
