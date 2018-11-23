@@ -46,7 +46,7 @@ module ReleaseNotes
     end
 
     def self.changelog_header(server_name)
-      "Deployed to: #{server_name} (#{Time.now.utc.asctime})"
+      "Deployed to: #{server_name} (#{Time.now.strftime("%a %b %e %Y at %T")})"
     end
 
     def self.release_verification_text(new_sha, old_sha, server_name)
