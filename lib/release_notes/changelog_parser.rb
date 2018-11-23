@@ -11,7 +11,8 @@ module ReleaseNotes
     end
 
     def self.update_changelog(changelog_text, new_sha, old_sha, server_name)
-      ["## #{changelog_header(server_name)}", changelog_text].join("\n\n") + "\n\n" + "[meta_data]: " + release_verification_text(new_sha, old_sha, server_name).to_json + "\n\n"
+      metadata_content = "<!-- [meta_data]: #{release_verification_text(new_sha, old_sha, server_name).to_json} -->\n\n"
+      ["## #{changelog_header(server_name)}", changelog_text, metadata_content].join("\n\n")
     end
 
     def self.last_commit(server_name, metadata)
