@@ -11,23 +11,22 @@ module ReleaseNotes
       @api = api
     end
 
-    def update(text, new_sha, old_sha, prs)
-      summary = ChangelogParser.create_summary(prs, server_name)
-      changelog_content = ChangelogParser.update_changelog(text, new_sha, old_sha, server_name)
-      push_changelog_to_github(changelog_content, summary)
+    def prepare(text, new_sha, old_sha, prs)
+      { summary: ChangelogParser.create_summary(prs, server_name),
+        body: ChangelogParser.update_changelog(text, new_sha, old_sha, server_name) }
+    end
+
+    def push_to_github(changelog)
+      if github_file.present?
+        changelog_body = changelog[:body] + old_changelog_content
+        @api.update_changelog(github_file, changelog[:summary], changelog_body)
+      else
+        @api.create_content(@file_path, changelog)
+      end
     end
 
     def metadata
       find_last_metadata
-    end
-
-    def push_changelog_to_github(changelog_content, summary)
-      if github_file.present?
-        content = changelog_content + old_changelog_content
-        @api.update_changelog(github_file, content, summary)
-      else
-        @api.create_content(@file_path, changelog_content)
-      end
     end
 
     private

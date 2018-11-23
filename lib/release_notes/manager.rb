@@ -22,12 +22,26 @@ module ReleaseNotes
     end
 
     def create_changelog_from_sha(new_sha, old_sha: nil)
-      old_sha ||= ChangelogParser.last_commit(server_name, @changelog.metadata)
+      old_sha ||= last_commit_sha
 
       prs = texts_from_merged_pr(new_sha, old_sha) if old_sha
       text = changelog_body(old_sha, prs)
 
-      @changelog.update(text, new_sha, old_sha, prs)
+      @changelog.prepare(text, new_sha, old_sha, prs)
+    end
+
+    def push_changelog_to_github(content)
+      @changelog.push_to_github(content)
+    end
+
+    private
+
+    def branch_sha(branch)
+      @api.branch(branch).commit.sha
+    end
+
+    def last_commit_sha
+      ChangelogParser.last_commit(server_name, @changelog.metadata)
     end
 
     def changelog_body(old_sha, prs)
@@ -37,12 +51,6 @@ module ReleaseNotes
     def texts_from_merged_pr(new_sha, old_sha)
       commits_between_tags = @api.find_commits_between(old_sha, new_sha)
       matching_pr_commits(commits_between_tags, old_sha).map { |commit| {number: commit.number, title: commit.title, text: commit.body.squish } }
-    end
-
-    private
-
-    def branch_sha(branch)
-      @api.branch(branch).commit.sha
     end
 
     # find the prs that contain the commits between two tags
