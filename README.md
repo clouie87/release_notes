@@ -30,18 +30,35 @@ gem 'release_notes', :github => 'clouie87/release_notes'
 2. Create an [OAuth token](https://developer.github.com/v3/oauth/) to access your repo through the Github API. You can [create access tokens in GitHub Account Settings](https://help.github.com/articles/creating-an-access-token-for-command-line-use/).
 
 ### Usage
+1. Create a changelog:
 Pass the ReleaseNotes Manager your repo, the access_token and server name. There are methods that can be called to create the changelog:
+
 ```ruby
-release_manager = ReleaseNotes::Manager.new('your repo', 'access token', 'server_name')
+release_manager = ReleaseNotes::Manager.new('github_user/your_repo', 'access token', 'server_name')
 
 # create changelog by branch
-release_manager.create_changelog_from_branch('branch_name')
+changelog = release_manager.create_changelog_from_branch('branch_name')
 
 # create changelog by tag
-release_manager.create_changelog_from_tag('tag_name')
+changelog = release_manager.create_changelog_from_tag('tag_name')
 
 # create changelog by sha
-release_manager.create_changelog_from_sha('sha')
+changelog = release_manager.create_changelog_from_sha('sha')
+```
+
+2. Push the changelog to Github:
+Once the changelog has been created, you can push it to Github. By default, the changelog will be saved to the repo initialized in the ReleaseNotes Manager. If you would like the release notes to appear in other repos, pass in the name of those repos.
+
+``` ruby
+# Default
+release_manager.push_changelog_to_github(changelog)
+
+# Pass in repo names where you want the changelog to be created
+release_manager.push_changelog_to_github(changelog, 'github_user/another_repo', 'github_user/extra_repo')
+
 ```
 
 Then on Github, a file will be added to your project `{server_name}_changelog.md`
+
+### Future Plans:
+- allow the changelog to be emailed or printed.
