@@ -31,7 +31,7 @@ module ReleaseNotes
 
     def push_changelog_to_github(content, *repos)
       repos = Array(@repo) if repos.empty?
-      repos.each do |repo|
+      repos.flatten.each do |repo|
         @changelog.push_to_github(repo, content)
       end
     end
