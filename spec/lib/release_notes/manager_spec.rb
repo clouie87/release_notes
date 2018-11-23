@@ -27,10 +27,6 @@ describe ReleaseNotes::Manager do
 
     subject { ReleaseNotes::Manager.new(@repo, @access_token, DEFAULT_SERVER) }
 
-    it 'informs that it is the First Deploy if nothing to compare against' do
-      expect(ReleaseNotes::Manager.new(@repo, @access_token, "fake").changelog_body(nil, [pr])).to include("First Deploy")
-    end
-
     context 'when commits are merged into one branch and then merged into another_branch' do
       let(:branch_one) { create_branch }
       let(:branch_two) { create_branch }
