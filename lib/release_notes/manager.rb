@@ -6,6 +6,7 @@ module ReleaseNotes
     attr_accessor :server_name
 
     def initialize(repo, token, server_name)
+      @repo = repo
       @api = GithubAPI.new(repo, token)
       @server_name = server_name
       @changelog = ChangelogFile.new(server_name, @api)
@@ -23,14 +24,21 @@ module ReleaseNotes
 
     def create_changelog_from_sha(new_sha, old_sha: nil)
       old_sha ||= last_commit_sha
-
       prs = texts_from_merged_pr(new_sha, old_sha) if old_sha
 
       @changelog.prepare(new_sha, old_sha, prs)
     end
 
-    def push_changelog_to_github(content)
-      @changelog.push_to_github(content)
+    def push_changelog_to_github(content, *repos)
+      repos = Array(@repo) if repos.empty?
+      repos.each do |repo|
+        @changelog.push_to_github(repo, content)
+      end
+    end
+
+    def texts_from_merged_pr(new_sha, old_sha)
+      commits_between_tags = @api.find_commits_between(old_sha, new_sha)
+      matching_pr_commits(commits_between_tags, old_sha).map { |commit| {number: commit.number, title: commit.title, text: commit.body.squish } }
     end
 
     private
@@ -41,11 +49,6 @@ module ReleaseNotes
 
     def last_commit_sha
       ChangelogParser.last_commit(server_name, @changelog.metadata)
-    end
-
-    def texts_from_merged_pr(new_sha, old_sha)
-      commits_between_tags = @api.find_commits_between(old_sha, new_sha)
-      matching_pr_commits(commits_between_tags, old_sha).map { |commit| {number: commit.number, title: commit.title, text: commit.body.squish } }
     end
 
     # find the prs that contain the commits between two tags
