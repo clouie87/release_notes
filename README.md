@@ -47,14 +47,14 @@ changelog = release_manager.create_changelog_from_sha('sha')
 ```
 
 2. Push the changelog to Github:
-Once the changelog has been created, you can push it to Github. By default, the changelog will be saved to the repo initialized in the ReleaseNotes Manager. If you would like the release notes to appear in other repos, pass in the name of those repos.
+Once the changelog has been created, you can push it to Github. By default, the changelog will be saved to the repo initialized in the ReleaseNotes Manager. To save the changelog on other repos, pass the name of **all** the repos you would like the changelog to appear in, including the initialized repo.
 
 ``` ruby
 # Default
 release_manager.push_changelog_to_github(changelog)
 
 # Pass in repo names where you want the changelog to be created
-release_manager.push_changelog_to_github(changelog, 'github_user/another_repo', 'github_user/extra_repo')
+release_manager.push_changelog_to_github(changelog, 'github_user/your_repo', 'github_user/another_repo')
 
 ```
 
