@@ -11,9 +11,9 @@ module ReleaseNotes
       @api = api
     end
 
-    def prepare(text, new_sha, old_sha, prs)
-      { summary: ChangelogParser.create_summary(prs, server_name),
-        body: ChangelogParser.update_changelog(text, new_sha, old_sha, server_name) }
+    def prepare(new_sha, old_sha, prs)
+      { summary: ChangelogParser.prepare_changelog_summary(server_name, prs),
+        body: ChangelogParser.prepare_changelog_body(new_sha, old_sha, server_name, prs) }
     end
 
     def push_to_github(changelog)

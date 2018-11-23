@@ -25,9 +25,8 @@ module ReleaseNotes
       old_sha ||= last_commit_sha
 
       prs = texts_from_merged_pr(new_sha, old_sha) if old_sha
-      text = changelog_body(old_sha, prs)
 
-      @changelog.prepare(text, new_sha, old_sha, prs)
+      @changelog.prepare(new_sha, old_sha, prs)
     end
 
     def push_changelog_to_github(content)
@@ -42,10 +41,6 @@ module ReleaseNotes
 
     def last_commit_sha
       ChangelogParser.last_commit(server_name, @changelog.metadata)
-    end
-
-    def changelog_body(old_sha, prs)
-      old_sha.present? ? ChangelogParser.assemble_changelog(prs) : "First Deploy"
     end
 
     def texts_from_merged_pr(new_sha, old_sha)
