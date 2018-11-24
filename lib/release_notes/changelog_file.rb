@@ -35,14 +35,14 @@ module ReleaseNotes
       @api.find_content(@file_path)
     end
 
-    def old_changelog_content
-      return nil unless github_file.present?
-      Base64.decode64(github_file.content).force_encoding("UTF-8")
-    end
-
     def find_last_metadata
       return nil unless old_changelog_content.present?
       old_changelog_content[/{"#{server_name}"(.*)/]
+    end
+
+    def old_changelog_content
+      return nil unless github_file.present?
+      Base64.decode64(github_file.content).force_encoding("UTF-8")
     end
   end
 end

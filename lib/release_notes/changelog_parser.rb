@@ -7,7 +7,7 @@ module ReleaseNotes
     def self.prepare_changelog_body(new_sha, old_sha, server_name, prs)
       header_text = "## #{changelog_header(server_name)}"
       changelog_body = body_text(old_sha, prs)
-      metadata_content = "<!-- [meta_data]: #{release_verification_text(new_sha, old_sha, server_name).to_json} -->\n\n"
+      metadata_content = "[meta_data]: #{release_verification_text(new_sha, old_sha, server_name).to_json}\n\n"
 
       [header_text, changelog_body, metadata_content].join("\n\n")
     end
