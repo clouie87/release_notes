@@ -4,14 +4,16 @@ module ReleaseNotes
     INCLUDE_PR_TEXT = "[x] Include this PR in the changelog".freeze
     END_STRING = /#\W\S/
 
-    def self.assemble_changelog(prs)
-      changelog_prs = changelog_prs(prs)
-      return "No Closed PRS" if changelog_prs.empty?
-      ["#### Closed PRS:", changelog_prs_text(changelog_prs)].join("\n\n")
+    def self.prepare_changelog_body(new_sha, old_sha, server_name, prs)
+      header_text = "## #{changelog_header(server_name)}"
+      changelog_body = body_text(old_sha, prs)
+      metadata_content = "[meta_data]: #{release_verification_text(new_sha, old_sha, server_name).to_json}\n\n"
+
+      [header_text, changelog_body, metadata_content].join("\n\n")
     end
 
-    def self.update_changelog(changelog_text, new_sha, old_sha, server_name)
-      ["## #{changelog_header(server_name)}", changelog_text].join("\n\n") + "\n\n" + "[meta_data]: " + release_verification_text(new_sha, old_sha, server_name).to_json + "\n\n"
+    def self.prepare_changelog_summary(server_name, prs)
+      [changelog_header(server_name), changelog_summary(prs).join("\n\n")].join("\n\n")
     end
 
     def self.last_commit(server_name, metadata)
@@ -20,11 +22,15 @@ module ReleaseNotes
       metadata[server_name]["commit_sha"]
     end
 
-    def self.create_summary(prs, server_name)
-      [changelog_header(server_name), changelog_summary(prs).join("\n\n")].join("\n\n")
-    end
-
     private
+
+    def self.body_text(old_sha, prs)
+      return "First Deploy" unless old_sha.present?
+
+      changelog_prs = changelog_prs(prs)
+      return "No Closed PRS" if changelog_prs.empty?
+      ["#### Closed PRS:", changelog_prs_text(changelog_prs)].join("\n\n")
+    end
 
     def self.changelog_summary(prs)
       changelog_prs = changelog_prs(prs)
@@ -46,7 +52,7 @@ module ReleaseNotes
     end
 
     def self.changelog_header(server_name)
-      "Deployed to: #{server_name} (#{Time.now.utc.asctime})"
+      "Deployed to: #{server_name} (#{Time.now.strftime("%a %b %e %Y at %T")})"
     end
 
     def self.release_verification_text(new_sha, old_sha, server_name)

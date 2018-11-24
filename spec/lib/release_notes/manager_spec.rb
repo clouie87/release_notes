@@ -9,10 +9,25 @@ describe ReleaseNotes::Manager do
 
   before(:all) do
     @access_token = ENV['GITHUB_API_TOKEN']
-    @test_client = Octokit::Client.new(access_token: @access_token)
+    @test_client = Octokit::Client.new(access_token: @access_token, site_admin: true)
     @test_client.login
-    @repo = @test_client.create_repo('test_release_notes', description: "testing gitHubAPI", auto_init: true).full_name
+    @repository = @test_client.create_repo('test_release_notes', description: "testing gitHubAPI", auto_init: true)
+    @repo = @repository.full_name
     @api = ReleaseNotes::GithubAPI.new(@repo, ENV['GITHUB_API_TOKEN'])
+  end
+
+  describe '#push_changelog_to_github' do
+    let(:changelog) { { summary: "Summary of changes", body: "Any Text"} }
+    subject { ReleaseNotes::Manager.new(@repo, @access_token, 'Test Name') }
+
+    it 'creates a changelog on the repo' do
+      expect { subject.push_changelog_to_github(changelog) }.to change { @test_client.commits(@repo).count }.by(1)
+    end
+
+    it 'creates a changelog on repos passed in' do
+      another_repo = @test_client.create_repo('another_repo', description: "testing gitHubAPI", auto_init: true).full_name
+      expect { subject.push_changelog_to_github(changelog, another_repo) }.to change { @test_client.commits(another_repo).count }.by(1)
+    end
   end
 
   describe '#texts_from_merged_pr' do
@@ -26,10 +41,6 @@ describe ReleaseNotes::Manager do
     before(:each) { branch; pr }
 
     subject { ReleaseNotes::Manager.new(@repo, @access_token, DEFAULT_SERVER) }
-
-    it 'informs that it is the First Deploy if nothing to compare against' do
-      expect(ReleaseNotes::Manager.new(@repo, @access_token, "fake").changelog_body(nil, [pr])).to include("First Deploy")
-    end
 
     context 'when commits are merged into one branch and then merged into another_branch' do
       let(:branch_one) { create_branch }
