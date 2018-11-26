@@ -31,8 +31,9 @@ module ReleaseNotes
 
     def push_changelog_to_github(content, *repos)
       repos = Array(@repo) if repos.empty?
+      changelog_body = @changelog.prepend_to_existing(content)
       repos.flatten.compact.each do |repo|
-        @changelog.push_to_github(repo, content)
+        @changelog.push_to_github(repo, content[:summary], changelog_body)
       end
     end
 

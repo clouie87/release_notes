@@ -16,12 +16,16 @@ module ReleaseNotes
         body: ChangelogParser.prepare_changelog_body(new_sha, old_sha, server_name, prs) }
     end
 
-    def push_to_github(repo, changelog)
+    def prepend_to_existing(changelog)
+      return changelog[:body] unless github_file.present?
+      changelog[:body] + old_changelog_content
+    end
+
+    def push_to_github(repo, summary, body)
       if github_file.present?
-        changelog_body = changelog[:body] + old_changelog_content
-        @api.update_changelog(repo, github_file, changelog[:summary], changelog_body)
+        @api.update_changelog(repo, github_file, summary, body)
       else
-        @api.create_content(repo, @file_path, changelog[:body])
+        @api.create_content(repo, @file_path, body)
       end
     end
 
