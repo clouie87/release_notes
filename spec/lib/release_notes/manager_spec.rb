@@ -11,22 +11,31 @@ describe ReleaseNotes::Manager do
     @access_token = ENV['GITHUB_API_TOKEN']
     @test_client = Octokit::Client.new(access_token: @access_token, site_admin: true)
     @test_client.login
-    @repository = @test_client.create_repo('test_release_notes', description: "testing gitHubAPI", auto_init: true)
-    @repo = @repository.full_name
+    @repo = @test_client.create_repo('test_release_notes', description: "testing gitHubAPI", auto_init: true).full_name
+    @another_repo = @test_client.create_repo('another_repo', description: "testing gitHubAPI", auto_init: true).full_name
     @api = ReleaseNotes::GithubAPI.new(@repo, ENV['GITHUB_API_TOKEN'])
   end
 
   describe '#push_changelog_to_github' do
     let(:changelog) { { summary: "Summary of changes", body: "Any Text"} }
-    subject { ReleaseNotes::Manager.new(@repo, @access_token, 'Test Name') }
+    let(:server_name) { 'Test Name' }
+    let(:file_path) { "#{server_name.downcase.parameterize.underscore}_changelog.md" }
+
+    subject { ReleaseNotes::Manager.new(@repo, @access_token, server_name) }
 
     it 'creates a changelog on the repo' do
       expect { subject.push_changelog_to_github(changelog) }.to change { @test_client.commits(@repo).count }.by(1)
     end
 
-    it 'creates a changelog on repos passed in' do
-      another_repo = @test_client.create_repo('another_repo', description: "testing gitHubAPI", auto_init: true).full_name
-      expect { subject.push_changelog_to_github(changelog, another_repo) }.to change { @test_client.commits(another_repo).count }.by(1)
+    context 'with multiple repos' do
+      it 'creates a changelog on repos passed in' do
+        expect { subject.push_changelog_to_github(changelog, @another_repo) }.to change { @test_client.commits(@another_repo).count }.by(1)
+      end
+
+      it 'creates the same changelog when multiple repos are passed in' do
+        subject.push_changelog_to_github(changelog, @repo, @another_repo)
+        expect(get_content(@repo, file_path)).to eq(get_content(@another_repo, file_path))
+      end
     end
   end
 
@@ -77,6 +86,7 @@ describe ReleaseNotes::Manager do
   after(:all) do
     puts "delete created repo"
     @test_client.delete_repo(@repo)
+    @test_client.delete_repo(@another_repo)
   end
 end
 
@@ -132,6 +142,11 @@ end
 
 def add_content(tag, branch_name: "master")
   @test_client.create_content(@repo, "lib/test#{tag}.rb", 'AddingContent', 'Closes Issue#1', :branch => branch_name)
+end
+
+def get_content(repo, file_path)
+  content = @test_client.contents(repo, path: file_path).content
+  Base64.decode64(content).force_encoding("UTF-8")
 end
 
 def pr_commit(commit)
