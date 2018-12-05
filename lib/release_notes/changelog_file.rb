@@ -22,8 +22,9 @@ module ReleaseNotes
     end
 
     def push_to_github(repo, summary, body)
-      if github_file.present?
-        @api.update_changelog(repo, github_file, summary, body)
+      file = github_file(repo)
+      if file.present?
+        @api.update_changelog(repo, file, summary, body)
       else
         @api.create_content(repo, @file_path, body)
       end
@@ -35,8 +36,8 @@ module ReleaseNotes
 
     private
 
-    def github_file
-      @api.find_content(@file_path)
+    def github_file(repo = nil)
+      @api.find_content(@file_path, repo)
     end
 
     def find_last_metadata

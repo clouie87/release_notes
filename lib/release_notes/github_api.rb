@@ -56,8 +56,9 @@ module ReleaseNotes
       @client.branch(@repo, branch)
     end
 
-    def find_content(changelog_file)
-      @client.contents(@repo, path: changelog_file)
+    def find_content(changelog_file, repo)
+      repo ||= @repo
+      @client.contents(repo, path: changelog_file)
     rescue Octokit::NotFound
       return nil
     end
