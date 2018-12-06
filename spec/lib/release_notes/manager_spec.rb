@@ -36,6 +36,12 @@ describe ReleaseNotes::Manager do
         subject.push_changelog_to_github(changelog, @repo, @another_repo)
         expect(get_content(@repo, file_path)).to eq(get_content(@another_repo, file_path))
       end
+
+      it 'updates the changelog for multiple repos' do
+        changelog = { summary: "Second", body: "Second Text"}
+        subject.push_changelog_to_github(changelog, @repo, @another_repo)
+        expect { subject.push_changelog_to_github(changelog, @another_repo) }.to change { @test_client.commits(@another_repo).count }.by(1)
+      end
     end
   end
 
