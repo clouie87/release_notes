@@ -47,7 +47,7 @@ describe ReleaseNotes::Manager do
 
   describe '#texts_from_merged_pr' do
     let(:branch) { create_branch }
-    let(:pr) { setup_issue_commit_pr('master', branch) }
+    let(:pr) { setup_issue_commit_pr("main", branch) }
 
     before(:each) do
       sleep 1 # Github Best Practices https://developer.github.com/guides/best-practices-for-integrators/#dealing-with-rate-limits
@@ -73,7 +73,7 @@ describe ReleaseNotes::Manager do
 
       it 'finds all the pr texts when a branch is merged into another branch' do
         subject.create_changelog_from_sha(pr.merge_commit_sha)
-        pr_five =  create_and_merge_pull_request(main_branch: 'master', feature_branch: branch_one)
+        pr_five =  create_and_merge_pull_request("main", feature_branch: branch_one)
         expect(subject.texts_from_merged_pr(pr_five.merge_commit_sha, pr.merge_commit_sha)).to include(pr_commit(pr_five), pr_commit(pr_four), pr_commit(pr_three))
       end
 
@@ -101,7 +101,7 @@ end
 def setup_issue_commit_pr(main_branch, feature_branch, body: 'dummyText')
   issue = create_issue
   closing_commit = create_commit("closing_commit_#{issue.number}", feature_branch)
-  create_and_merge_pull_request(main_branch: main_branch, feature_branch: feature_branch, body: "#{body}_#{issue.number}", issue: issue.number)
+  create_and_merge_pull_request(main_branch, feature_branch: feature_branch, body: "#{body}_#{issue.number}", issue: issue.number)
 end
 
 def setup_issue_commit_unmerged(main_branch, feature_branch, body: 'dummyText')
@@ -129,10 +129,10 @@ def create_uniq_number
 end
 
 def create_commit(commit_name, branch_name)
-  add_content(commit_name, branch_name: branch_name)
+  @test_client.create_content(@repo, "lib/test#{commit_name}.rb", 'AddingContent', 'Closes Issue#1', :branch => branch_name)
 end
 
-def create_and_merge_pull_request(main_branch: 'master', feature_branch: nil, body: 'dummyText', issue: nil)
+def create_and_merge_pull_request(main_branch, feature_branch: nil, body: 'dummyText', issue: nil)
   pr = @test_client.create_pull_request(@repo, main_branch, feature_branch, body, pull_request_body(issue))
   merge_pull_request(pr.number)
   @test_client.pull_request(@repo, pr.number)
@@ -142,12 +142,8 @@ def merge_pull_request(number)
   @test_client.merge_pull_request(@repo, number)
 end
 
-def tagging_commit(branch: 'master')
-  @test_client.branch(@repo, branch).commit.sha
-end
-
-def add_content(tag, branch_name: "master")
-  @test_client.create_content(@repo, "lib/test#{tag}.rb", 'AddingContent', 'Closes Issue#1', :branch => branch_name)
+def tagging_commit
+  @test_client.branch(@repo, "main").commit.sha
 end
 
 def get_content(repo, file_path)
