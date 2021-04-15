@@ -57,11 +57,11 @@ module ReleaseNotes
     end
 
     def update_changelog(repo, file, summary, changelog_content, branch: "master")
-      @client.update_contents(repo, file.path, summary, file.sha, changelog_content, branch: "master")
+      @client.update_contents(repo, file.path, summary, file.sha, changelog_content)
     end
 
-    def create_content(repo, file, changelog_content, message: "Creating Changelog", branch: "master")
-      @client.create_content(repo, file, message, changelog_content, branch: branch)
+    def create_content(repo, file, changelog_content, message: "Creating Changelog")
+      @client.create_content(repo, file, message, changelog_content)
     end
   end
 end
