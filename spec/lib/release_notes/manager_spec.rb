@@ -156,7 +156,7 @@ def get_content(repo, file_path)
 end
 
 def pr_commit(commit)
-  {number: commit.number, title: commit.title, text: commit.body.squish }
+  {number: commit.number, title: commit.title, text: commit.body&.squish }
 end
 
 # CHANGELOG TEXT
