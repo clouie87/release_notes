@@ -42,7 +42,7 @@ module ReleaseNotes
 
     def self.changelog_prs(prs)
       return [] unless prs
-      prs.select { |pr| pr if pr[:text].include?(INCLUDE_PR_TEXT) }
+      prs.select { |pr| pr[:text]&.include?(INCLUDE_PR_TEXT) }
     end
 
     def self.changelog_prs_text(prs)

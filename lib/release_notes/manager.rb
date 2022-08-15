@@ -55,6 +55,7 @@ module ReleaseNotes
     # find the prs that contain the commits between two tags
     def matching_pr_commits(commits, old_sha)
       @api.merged_pull_requests(old_sha).select do |pr|
+        print '.'
         (@api.find_pull_request_commits(pr.number).map(&:sha) - commits.map(&:sha)).empty?
       end
     end
