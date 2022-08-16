@@ -10,7 +10,6 @@ module ReleaseNotes
       @repo = repo
       @client = Octokit::Client.new(access_token: token)
       @client.login
-      @client.auto_paginate = true
     end
 
     def find_commits_between(commit_old_sha, commit_new_sha)
@@ -35,17 +34,33 @@ module ReleaseNotes
     end
 
     def closed_pull_requests_between(old_sha)
-      closed_pull_requests.take_while do |pr|
-        pr.updated_at > last_commit_date(old_sha)
+      end_date = commit_date(old_sha)
+      closed_pull_requests = []
+
+      1.step do |page|
+        current_prs = closed_pull_requests_for_page(page)
+        break if current_prs.count.zero?
+
+        current_prs_since_end_date = current_prs.take_while { |pr| pr.updated_at > end_date }
+
+        closed_pull_requests += current_prs_since_end_date
+
+        # PRs are sorted by most recently updated.
+        # When there are fewer current_prs_since_end_date than current_prs,
+        # then we have all the closed_pull_requests since the old_sha.
+        break if current_prs_since_end_date.count < current_prs.count
       end
+
+      return closed_pull_requests
     end
 
-    def last_commit_date(old_sha)
+    def commit_date(old_sha)
       @client.commit(@repo, old_sha).commit.committer.date
     end
 
-    def closed_pull_requests
-      @client.pull_requests(@repo, state: 'closed', sort: 'updated', direction: "desc")
+    def closed_pull_requests_for_page(page)
+      puts "Closed PRs for page: #{page}"
+      @client.pull_requests(@repo, state: 'closed', sort: 'updated', direction: "desc", page: page)
     end
 
     def find_pull_request_commits(pr)
