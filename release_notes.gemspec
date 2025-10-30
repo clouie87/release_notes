@@ -19,5 +19,5 @@ Gem::Specification.new do |s|
 
   s.add_dependency "activesupport"
   s.add_development_dependency "rspec", "~> 3.0"
-  s.add_dependency "octokit", "~> 4.0"
+  s.add_dependency "octokit", "~> 5.0"
 end
