@@ -13,7 +13,18 @@ module ReleaseNotes
     end
 
     def find_commits_between(commit_old_sha, commit_new_sha)
-      @client.compare(@repo, commit_old_sha, commit_new_sha).commits
+      found_commits = []
+      1.step do |page|
+        current_commits = @client.compare(@repo, commit_old_sha, commit_new_sha, page: page).commits
+        puts "Associated commits for page: #{page}"
+
+        break if current_commits.count.zero?
+
+        found_commits += current_commits
+        sleep(1)
+      end
+
+      return found_commits
     end
 
     def find_tag_by_name(tag_name)
